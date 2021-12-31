@@ -166,9 +166,8 @@ type Subscriber struct {
 	closed  bool
 	closing chan struct{}
 
-	outputsWg            sync.WaitGroup
-	processingMessagesWg sync.WaitGroup
-	js                   nats.JetStreamContext
+	outputsWg sync.WaitGroup
+	js        nats.JetStreamContext
 }
 
 // NewSubscriber creates a new Subscriber.
@@ -219,8 +218,12 @@ func NewSubscriberWithNatsConn(conn *nats.Conn, config SubscriberSubscriptionCon
 func (s *Subscriber) Subscribe(ctx context.Context, topic string) (<-chan *message.Message, error) {
 	output := make(chan *message.Message)
 
+	s.outputsWg.Add(1)
+	outputWg := &sync.WaitGroup{}
+
 	for i := 0; i < s.config.SubscribersCount; i++ {
-		s.outputsWg.Add(1)
+		outputWg.Add(1)
+
 		subscriberLogFields := watermill.LogFields{
 			"subscriber_num": i,
 			"topic":          topic,
@@ -235,8 +238,6 @@ func (s *Subscriber) Subscribe(ctx context.Context, topic string) (<-chan *messa
 			return nil, errors.Wrap(err, "cannot subscribe")
 		}
 
-		processMessagesWg := &sync.WaitGroup{}
-
 		go func(subscriber *nats.Subscription, subscriberLogFields watermill.LogFields) {
 			select {
 			case <-s.closing:
@@ -248,9 +249,7 @@ func (s *Subscriber) Subscribe(ctx context.Context, topic string) (<-chan *messa
 			if err := sub.Unsubscribe(); err != nil {
 				s.logger.Error("Cannot unsubscribe", err, subscriberLogFields)
 			}
-
-			processMessagesWg.Wait()
-			s.outputsWg.Done()
+			outputWg.Done()
 		}(sub, subscriberLogFields)
 
 		s.subsLock.Lock()
@@ -259,8 +258,9 @@ func (s *Subscriber) Subscribe(ctx context.Context, topic string) (<-chan *messa
 	}
 
 	go func() {
-		s.outputsWg.Wait()
+		outputWg.Wait()
 		close(output)
+		s.outputsWg.Done()
 	}()
 
 	return output, nil
@@ -322,9 +322,6 @@ func (s *Subscriber) processMessage(
 	if s.isClosed() {
 		return
 	}
-
-	s.processingMessagesWg.Add(1)
-	defer s.processingMessagesWg.Done()
 
 	s.logger.Trace("Received message", logFields)
 
@@ -400,11 +397,7 @@ func (s *Subscriber) Close() error {
 		return errors.Wrap(err, "cannot close conn")
 	}
 
-	//TODO: this is weird but need to hesitate long enough for any outstanding output channels to finish closing
-	select {
-	case <-time.After(100 * time.Microsecond):
-		return nil
-	}
+	return nil
 }
 
 func (s *Subscriber) isClosed() bool {

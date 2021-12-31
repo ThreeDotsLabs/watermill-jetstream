@@ -48,7 +48,7 @@ func newPubSub(t *testing.T, clientID string, queueName string) (message.Publish
 		AckWaitTimeout:   time.Second,
 		Unmarshaler:      jetstream.GobMarshaler{},
 		NatsOptions:      options,
-		//CloseTimeout:   time.Second,
+		CloseTimeout:     time.Second,
 	}, logger)
 	require.NoError(t, err)
 
