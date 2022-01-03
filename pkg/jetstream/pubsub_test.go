@@ -3,6 +3,7 @@ package jetstream_test
 import (
 	"github.com/nats-io/nats.go"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -14,7 +15,9 @@ import (
 )
 
 func newPubSub(t *testing.T, clientID string, queueName string) (message.Publisher, message.Subscriber) {
-	logger := watermill.NewStdLogger(true, true)
+	trace := os.Getenv("WATERMILL_TEST_NATS_TRACE")
+
+	logger := watermill.NewStdLogger(true, strings.ToLower(trace) == "trace")
 
 	natsURL := os.Getenv("WATERMILL_TEST_NATS_URL")
 	if natsURL == "" {
@@ -48,7 +51,7 @@ func newPubSub(t *testing.T, clientID string, queueName string) (message.Publish
 		AckWaitTimeout:   time.Second,
 		Unmarshaler:      jetstream.GobMarshaler{},
 		NatsOptions:      options,
-		CloseTimeout:     time.Second,
+		//CloseTimeout:     time.Second,
 	}, logger)
 	require.NoError(t, err)
 

@@ -65,6 +65,9 @@ type SubscriberConfig struct {
 	// It is mapped to stan.AckWait option.
 	AckWaitTimeout time.Duration
 
+	// SubscribeTimeout determines how long subscriber will wait for a successful subscription
+	SubscribeTimeout time.Duration
+
 	// NatsOptions are custom []nats.Option passed to the connection.
 	// It is also used to provide connection parameters, for example:
 	// 		nats.URL("nats://localhost:4222")
@@ -113,6 +116,9 @@ type SubscriberSubscriptionConfig struct {
 	// CloseTimeout determines how long subscriber will wait for Ack/Nack on close.
 	// When no Ack/Nack is received after CloseTimeout, subscriber will be closed.
 	CloseTimeout time.Duration
+
+	// SubscribeTimeout determines how long subscriber will wait for a successful subscription
+	SubscribeTimeout time.Duration
 }
 
 func (c *SubscriberConfig) GetStreamingSubscriberSubscriptionConfig() SubscriberSubscriptionConfig {
@@ -123,6 +129,7 @@ func (c *SubscriberConfig) GetStreamingSubscriberSubscriptionConfig() Subscriber
 		SubscribersCount: c.SubscribersCount,
 		AckWaitTimeout:   c.AckWaitTimeout,
 		CloseTimeout:     c.CloseTimeout,
+		SubscribeTimeout: c.SubscribeTimeout,
 	}
 }
 
@@ -135,6 +142,9 @@ func (c *SubscriberSubscriptionConfig) setDefaults() {
 	}
 	if c.AckWaitTimeout <= 0 {
 		c.AckWaitTimeout = time.Second * 30
+	}
+	if c.SubscribeTimeout <= 0 {
+		c.SubscribeTimeout = time.Second * 30
 	}
 }
 
@@ -160,7 +170,6 @@ type Subscriber struct {
 
 	config SubscriberSubscriptionConfig
 
-	subs     []*nats.Subscription
 	subsLock sync.RWMutex
 
 	closed  bool
@@ -239,6 +248,7 @@ func (s *Subscriber) Subscribe(ctx context.Context, topic string) (<-chan *messa
 		}
 
 		go func(subscriber *nats.Subscription, subscriberLogFields watermill.LogFields) {
+			defer outputWg.Done()
 			select {
 			case <-s.closing:
 				// unblock
@@ -249,18 +259,13 @@ func (s *Subscriber) Subscribe(ctx context.Context, topic string) (<-chan *messa
 			if err := sub.Unsubscribe(); err != nil {
 				s.logger.Error("Cannot unsubscribe", err, subscriberLogFields)
 			}
-			outputWg.Done()
 		}(sub, subscriberLogFields)
-
-		s.subsLock.Lock()
-		s.subs = append(s.subs, sub)
-		s.subsLock.Unlock()
 	}
 
 	go func() {
+		defer s.outputsWg.Done()
 		outputWg.Wait()
 		close(output)
-		s.outputsWg.Done()
 	}()
 
 	return output, nil
@@ -295,6 +300,8 @@ func (s *Subscriber) subscribe(topic string, cb nats.MsgHandler) (*nats.Subscrip
 
 	if s.config.DurableName != "" {
 		opts = append(opts, nats.Durable(s.config.DurableName))
+	} else {
+		opts = append(opts, nats.BindStream(subTopic))
 	}
 
 	if s.config.QueueGroup != "" {
