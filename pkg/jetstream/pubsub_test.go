@@ -75,7 +75,7 @@ func TestPublishSubscribe(t *testing.T) {
 			GuaranteedOrder:                     true,
 			GuaranteedOrderWithSingleSubscriber: true,
 			Persistent:                          true,
-			RestartServiceCommand:               []string{"docker", "restart", "watermill-jetstream_nats_1"},
+			RestartServiceCommand:               []string{"docker", "restart", "watermill-jetstream-nats-1"},
 			RequireSingleInstance:               false,
 			NewSubscriberReceivesOldMessages:    false,
 		},
