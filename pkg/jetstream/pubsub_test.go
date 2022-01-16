@@ -24,7 +24,9 @@ func newPubSub(t *testing.T, clientID string, queueName string) (message.Publish
 		natsURL = nats.DefaultURL
 	}
 
-	options := []nats.Option{}
+	options := []nats.Option{
+		nats.ReconnectWait(time.Second),
+	}
 
 	c, err := nats.Connect(natsURL, nats.Timeout(5*time.Second))
 
@@ -71,7 +73,7 @@ func TestPublishSubscribe(t *testing.T) {
 		t,
 		tests.Features{
 			ConsumerGroups:                      true,
-			ExactlyOnceDelivery:                 false,
+			ExactlyOnceDelivery:                 true,
 			GuaranteedOrder:                     true,
 			GuaranteedOrderWithSingleSubscriber: true,
 			Persistent:                          true,
