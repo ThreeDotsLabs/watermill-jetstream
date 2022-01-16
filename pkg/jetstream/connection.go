@@ -1,6 +1,6 @@
 package jetstream
 
-import nats "github.com/nats-io/nats.go"
+import "github.com/nats-io/nats.go"
 
 type NatsConnConfig struct {
 	// URL is the NATS URL.
