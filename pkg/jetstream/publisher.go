@@ -81,7 +81,7 @@ func NewPublisherWithNatsConn(conn *nats.Conn, config PublisherPublishConfig, lo
 
 // Publish publishes message to NATS.
 //
-// Publish will not return until an ack has been received from NATS Streaming.
+// Publish will not return until an ack has been received from JetStream.
 // When one of messages delivery fails - function is interrupted.
 func (p *Publisher) Publish(topic string, messages ...*message.Message) error {
 	err := initStream(p.js, topic)

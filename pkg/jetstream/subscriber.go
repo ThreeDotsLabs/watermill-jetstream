@@ -18,17 +18,14 @@ type SubscriberConfig struct {
 	// URL is the URL to the broker
 	URL string
 
-	// ClusterID is the NATS Streaming cluster ID.
-	ClusterID string
-
-	// ClientID is the NATS Streaming client ID to connect with.
+	// ClientID is the JetStream client ID to connect with.
 	// ClientID can contain only alphanumeric and `-` or `_` characters.
 	//
-	// Using DurableName causes the NATS Streaming server to track
+	// Using DurableName causes the JetStream server to track
 	// the last acknowledged message for that ClientID + DurableName.
 	ClientID string
 
-	// QueueGroup is the NATS Streaming queue group.
+	// QueueGroup is the JetStream queue group.
 	//
 	// All subscriptions with the same queue name (regardless of the connection they originate from)
 	// will form a queue group. Each message will be delivered to only one subscriber per queue group,
@@ -42,7 +39,7 @@ type SubscriberConfig struct {
 	// When QueueGroup is empty, subscribe without QueueGroup will be used.
 	QueueGroup string
 
-	// DurableName is the NATS streaming durable name.
+	// DurableName is the JetStream durable name.
 	//
 	// Subscriptions may also specify a “durable name” which will survive client restarts.
 	// Durable subscriptions cause the server to track the last acknowledged message
@@ -50,11 +47,11 @@ type SubscriberConfig struct {
 	// and uses the same client ID and durable name, the server will resume delivery beginning
 	// with the earliest unacknowledged message for this durable subscription.
 	//
-	// Doing this causes the NATS Streaming server to track
+	// Doing this causes the JetStream server to track
 	// the last acknowledged message for that ClientID + DurableName.
 	DurableName string
 
-	// SubscribersCount determines wow much concurrent subscribers should be started.
+	// SubscribersCount determines how many concurrent subscribers should be started.
 	SubscribersCount int
 
 	// CloseTimeout determines how long subscriber will wait for Ack/Nack on close.
@@ -80,7 +77,7 @@ type SubscriberConfig struct {
 type SubscriberSubscriptionConfig struct {
 	// Unmarshaler is an unmarshaler used to unmarshaling messages from NATS format to Watermill format.
 	Unmarshaler Unmarshaler
-	// QueueGroup is the NATS Streaming queue group.
+	// QueueGroup is the JetStream queue group.
 	//
 	// All subscriptions with the same queue name (regardless of the connection they originate from)
 	// will form a queue group. Each message will be delivered to only one subscriber per queue group,
@@ -94,7 +91,7 @@ type SubscriberSubscriptionConfig struct {
 	// When QueueGroup is empty, subscribe without QueueGroup will be used.
 	QueueGroup string
 
-	// DurableName is the NATS streaming durable name.
+	// DurableName is the JetStream durable name.
 	//
 	// Subscriptions may also specify a “durable name” which will survive client restarts.
 	// Durable subscriptions cause the server to track the last acknowledged message
@@ -102,7 +99,7 @@ type SubscriberSubscriptionConfig struct {
 	// and uses the same client ID and durable name, the server will resume delivery beginning
 	// with the earliest unacknowledged message for this durable subscription.
 	//
-	// Doing this causes the NATS Streaming server to track
+	// Doing this causes the JetStream server to track
 	// the last acknowledged message for that ClientID + DurableName.
 	DurableName string
 
@@ -221,7 +218,7 @@ func NewSubscriberWithNatsConn(conn *nats.Conn, config SubscriberSubscriptionCon
 	}, nil
 }
 
-// Subscribe subscribes messages from NATS Streaming.
+// Subscribe subscribes messages from JetStream.
 //
 // Subscribe will spawn SubscribersCount goroutines making subscribe.
 func (s *Subscriber) Subscribe(ctx context.Context, topic string) (<-chan *message.Message, error) {
