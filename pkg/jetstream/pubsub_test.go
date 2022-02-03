@@ -69,6 +69,11 @@ func createPubSubWithDurable(t *testing.T, consumerGroup string) (message.Publis
 }
 
 func TestPublishSubscribe(t *testing.T) {
+	containerName := "watermill-jetstream_nats_1" //default on linux
+	if cn, found := os.LookupEnv("WATERMILL_TEST_NATS_CONTAINERNAME"); found {
+		containerName = cn
+	}
+
 	tests.TestPubSub(
 		t,
 		tests.Features{
@@ -77,7 +82,7 @@ func TestPublishSubscribe(t *testing.T) {
 			GuaranteedOrder:                     true,
 			GuaranteedOrderWithSingleSubscriber: true,
 			Persistent:                          true,
-			RestartServiceCommand:               []string{"docker", "restart", "watermill-jetstream-nats-1"},
+			RestartServiceCommand:               []string{"docker", "restart", containerName},
 			RequireSingleInstance:               false,
 			NewSubscriberReceivesOldMessages:    false,
 		},
