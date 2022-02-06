@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	nats "github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go"
 	"github.com/pkg/errors"
 
 	"github.com/ThreeDotsLabs/watermill"
@@ -72,6 +72,9 @@ type SubscriberConfig struct {
 
 	// Unmarshaler is an unmarshaler used to unmarshaling messages from NATS format to Watermill format.
 	Unmarshaler Unmarshaler
+
+	// SubscribeOptions defines nats options to be used when subscribing
+	SubscribeOptions []nats.SubOpt
 }
 
 type SubscriberSubscriptionConfig struct {
@@ -116,6 +119,9 @@ type SubscriberSubscriptionConfig struct {
 
 	// SubscribeTimeout determines how long subscriber will wait for a successful subscription
 	SubscribeTimeout time.Duration
+
+	// SubscribeOptions defines nats options to be used when subscribing
+	SubscribeOptions []nats.SubOpt
 }
 
 func (c *SubscriberConfig) GetStreamingSubscriberSubscriptionConfig() SubscriberSubscriptionConfig {
@@ -127,6 +133,7 @@ func (c *SubscriberConfig) GetStreamingSubscriberSubscriptionConfig() Subscriber
 		AckWaitTimeout:   c.AckWaitTimeout,
 		CloseTimeout:     c.CloseTimeout,
 		SubscribeTimeout: c.SubscribeTimeout,
+		SubscribeOptions: c.SubscribeOptions,
 	}
 }
 
@@ -293,7 +300,7 @@ func (s *Subscriber) SubscribeInitialize(topic string) error {
 func (s *Subscriber) subscribe(topic string, cb nats.MsgHandler) (*nats.Subscription, error) {
 	subTopic := fmt.Sprintf("%s.*", topic)
 
-	opts := make([]nats.SubOpt, 0)
+	opts := s.config.SubscribeOptions
 
 	if s.config.DurableName != "" {
 		opts = append(opts, nats.Durable(s.config.DurableName))

@@ -28,6 +28,10 @@ func newPubSub(t *testing.T, clientID string, queueName string) (message.Publish
 		nats.ReconnectWait(time.Second),
 	}
 
+	subscribeOptions := []nats.SubOpt{
+		nats.DeliverAll(),
+	}
+
 	c, err := nats.Connect(natsURL, nats.Timeout(5*time.Second))
 
 	if err != nil {
@@ -53,7 +57,8 @@ func newPubSub(t *testing.T, clientID string, queueName string) (message.Publish
 		AckWaitTimeout:   time.Second,
 		Unmarshaler:      jetstream.GobMarshaler{},
 		NatsOptions:      options,
-		//CloseTimeout:     time.Second,
+		SubscribeOptions: subscribeOptions,
+		CloseTimeout:     10 * time.Second,
 	}, logger)
 	require.NoError(t, err)
 
@@ -78,7 +83,7 @@ func TestPublishSubscribe(t *testing.T) {
 		t,
 		tests.Features{
 			ConsumerGroups:                      true,
-			ExactlyOnceDelivery:                 true,
+			ExactlyOnceDelivery:                 false,
 			GuaranteedOrder:                     true,
 			GuaranteedOrderWithSingleSubscriber: true,
 			Persistent:                          true,
