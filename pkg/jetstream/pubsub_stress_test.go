@@ -12,12 +12,7 @@ import (
 func TestPublishSubscribe_stress(t *testing.T) {
 	tests.TestPubSubStressTest(
 		t,
-		tests.Features{
-			ConsumerGroups:      true,
-			ExactlyOnceDelivery: false,
-			GuaranteedOrder:     false,
-			Persistent:          true,
-		},
+		getTestFeatures(),
 		createPubSub,
 		createPubSubWithDurable,
 	)

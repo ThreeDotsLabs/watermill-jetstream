@@ -14,6 +14,24 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func getTestFeatures() tests.Features {
+	containerName := "watermill-jetstream_nats_1" //default on linux
+	if cn, found := os.LookupEnv("WATERMILL_TEST_NATS_CONTAINERNAME"); found {
+		containerName = cn
+	}
+
+	return tests.Features{
+		ConsumerGroups:                      true,
+		ExactlyOnceDelivery:                 false,
+		GuaranteedOrder:                     true,
+		GuaranteedOrderWithSingleSubscriber: true,
+		Persistent:                          true,
+		RestartServiceCommand:               []string{"docker", "restart", containerName},
+		RequireSingleInstance:               false,
+		NewSubscriberReceivesOldMessages:    false,
+	}
+}
+
 func newPubSub(t *testing.T, clientID string, queueName string) (message.Publisher, message.Subscriber) {
 	trace := os.Getenv("WATERMILL_TEST_NATS_TRACE")
 
@@ -74,23 +92,9 @@ func createPubSubWithDurable(t *testing.T, consumerGroup string) (message.Publis
 }
 
 func TestPublishSubscribe(t *testing.T) {
-	containerName := "watermill-jetstream_nats_1" //default on linux
-	if cn, found := os.LookupEnv("WATERMILL_TEST_NATS_CONTAINERNAME"); found {
-		containerName = cn
-	}
-
 	tests.TestPubSub(
 		t,
-		tests.Features{
-			ConsumerGroups:                      true,
-			ExactlyOnceDelivery:                 false,
-			GuaranteedOrder:                     true,
-			GuaranteedOrderWithSingleSubscriber: true,
-			Persistent:                          true,
-			RestartServiceCommand:               []string{"docker", "restart", containerName},
-			RequireSingleInstance:               false,
-			NewSubscriberReceivesOldMessages:    false,
-		},
+		getTestFeatures(),
 		createPubSub,
 		createPubSubWithDurable,
 	)
