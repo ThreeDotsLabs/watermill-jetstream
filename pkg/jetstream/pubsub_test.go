@@ -48,6 +48,7 @@ func newPubSub(t *testing.T, clientID string, queueName string) (message.Publish
 
 	subscribeOptions := []nats.SubOpt{
 		nats.DeliverAll(),
+		nats.AckExplicit(),
 	}
 
 	c, err := nats.Connect(natsURL, nats.Timeout(5*time.Second))
