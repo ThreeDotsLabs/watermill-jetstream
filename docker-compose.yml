@@ -9,3 +9,7 @@ services:
       - "0.0.0.0:4222:4222"
     restart: unless-stopped
     command: ["-js"]
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
