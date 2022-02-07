@@ -305,7 +305,7 @@ func (s *Subscriber) subscribe(topic string, cb nats.MsgHandler) (*nats.Subscrip
 	if s.config.DurableName != "" {
 		opts = append(opts, nats.Durable(s.config.DurableName))
 	} else {
-		opts = append(opts, nats.BindStream(subTopic))
+		opts = append(opts, nats.BindStream(""))
 	}
 
 	if s.config.QueueGroup != "" {

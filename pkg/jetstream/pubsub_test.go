@@ -28,7 +28,7 @@ func getTestFeatures() tests.Features {
 		Persistent:                          true,
 		RestartServiceCommand:               []string{"docker", "restart", containerName},
 		RequireSingleInstance:               false,
-		NewSubscriberReceivesOldMessages:    false,
+		NewSubscriberReceivesOldMessages:    true,
 	}
 }
 
@@ -68,10 +68,10 @@ func newPubSub(t *testing.T, clientID string, queueName string) (message.Publish
 
 	sub, err := jetstream.NewSubscriber(jetstream.SubscriberConfig{
 		URL:              natsURL,
-		ClientID:         clientID + "_sub",
+		ClientID:         clientID,
 		QueueGroup:       queueName,
-		DurableName:      "durable-name",
-		SubscribersCount: 10,
+		DurableName:      queueName,
+		SubscribersCount: 1, //multiple only works if a queue group specified
 		AckWaitTimeout:   time.Second,
 		Unmarshaler:      jetstream.GobMarshaler{},
 		NatsOptions:      options,
@@ -84,10 +84,10 @@ func newPubSub(t *testing.T, clientID string, queueName string) (message.Publish
 }
 
 func createPubSub(t *testing.T) (message.Publisher, message.Subscriber) {
-	return newPubSub(t, watermill.NewUUID(), "test-queue")
+	return newPubSub(t, watermill.NewUUID(), "")
 }
 
-func createPubSubWithDurable(t *testing.T, consumerGroup string) (message.Publisher, message.Subscriber) {
+func createPubSubWithConsumerGroup(t *testing.T, consumerGroup string) (message.Publisher, message.Subscriber) {
 	return newPubSub(t, consumerGroup, consumerGroup)
 }
 
@@ -96,6 +96,6 @@ func TestPublishSubscribe(t *testing.T) {
 		t,
 		getTestFeatures(),
 		createPubSub,
-		createPubSubWithDurable,
+		createPubSubWithConsumerGroup,
 	)
 }

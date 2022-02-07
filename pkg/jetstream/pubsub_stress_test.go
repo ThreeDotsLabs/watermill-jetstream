@@ -14,6 +14,6 @@ func TestPublishSubscribe_stress(t *testing.T) {
 		t,
 		getTestFeatures(),
 		createPubSub,
-		createPubSubWithDurable,
+		createPubSubWithConsumerGroup,
 	)
 }
