@@ -16,9 +16,6 @@ test_race:
 test_stress:
 	go test -tags=stress -parallel 30 -timeout=45m ./...
 
-test_reconnect:
-	go test -tags=reconnect ./...
-
 fmt:
 	gofmt -l $$(find . -type f -name '*.go'| grep -v "/vendor/")
 	[ "`gofmt -l $$(find . -type f -name '*.go'| grep -v "/vendor/")`" = "" ]

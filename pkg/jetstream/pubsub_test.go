@@ -15,18 +15,12 @@ import (
 )
 
 func getTestFeatures() tests.Features {
-	containerName := "watermill-jetstream_nats_1" //default on linux
-	if cn, found := os.LookupEnv("WATERMILL_TEST_NATS_CONTAINERNAME"); found {
-		containerName = cn
-	}
-
 	return tests.Features{
 		ConsumerGroups:                      true,
 		ExactlyOnceDelivery:                 false,
 		GuaranteedOrder:                     true,
 		GuaranteedOrderWithSingleSubscriber: true,
 		Persistent:                          true,
-		RestartServiceCommand:               []string{"docker", "restart", containerName},
 		RequireSingleInstance:               false,
 		NewSubscriberReceivesOldMessages:    true,
 	}
@@ -43,7 +37,9 @@ func newPubSub(t *testing.T, clientID string, queueName string) (message.Publish
 	}
 
 	options := []nats.Option{
-		nats.ReconnectWait(time.Second),
+		nats.RetryOnFailedConnect(true),
+		nats.Timeout(30 * time.Second),
+		nats.ReconnectWait(1 * time.Second),
 	}
 
 	subscribeOptions := []nats.SubOpt{
@@ -51,11 +47,10 @@ func newPubSub(t *testing.T, clientID string, queueName string) (message.Publish
 		nats.AckExplicit(),
 	}
 
-	c, err := nats.Connect(natsURL, nats.Timeout(5*time.Second))
+	c, err := nats.Connect(natsURL, options...)
+	require.NoError(t, err)
 
-	if err != nil {
-		panic(err)
-	}
+	defer c.Close()
 
 	_, err = c.JetStream()
 	require.NoError(t, err)
@@ -73,11 +68,11 @@ func newPubSub(t *testing.T, clientID string, queueName string) (message.Publish
 		QueueGroup:       queueName,
 		DurableName:      queueName,
 		SubscribersCount: 1, //multiple only works if a queue group specified
-		AckWaitTimeout:   time.Second,
+		AckWaitTimeout:   30 * time.Second,
 		Unmarshaler:      jetstream.GobMarshaler{},
 		NatsOptions:      options,
 		SubscribeOptions: subscribeOptions,
-		CloseTimeout:     10 * time.Second,
+		CloseTimeout:     30 * time.Second,
 	}, logger)
 	require.NoError(t, err)
 
