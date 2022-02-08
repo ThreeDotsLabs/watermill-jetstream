@@ -84,7 +84,7 @@ func createPubSub(t *testing.T) (message.Publisher, message.Subscriber) {
 }
 
 func createPubSubWithConsumerGroup(t *testing.T, consumerGroup string) (message.Publisher, message.Subscriber) {
-	return newPubSub(t, consumerGroup, consumerGroup)
+	return newPubSub(t, watermill.NewUUID(), consumerGroup)
 }
 
 func TestPublishSubscribe(t *testing.T) {
