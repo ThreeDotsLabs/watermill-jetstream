@@ -19,16 +19,22 @@ type PublisherConfig struct {
 	// Marshaler is marshaler used to marshal messages between watermill and wire formats
 	Marshaler Marshaler
 
-	// SubjectCalculator is a function used to transform a topic to an array of subjects (defaults to "{topic}.*")
+	// SubjectCalculator is a function used to transform a topic to an array of subjects on creation (defaults to "{topic}.*")
 	SubjectCalculator SubjectCalculator
+
+	// AutoProvision bypasses client validation and provisioning of streams
+	AutoProvision bool
 }
 
 type PublisherPublishConfig struct {
 	// Marshaler is marshaler used to marshal messages between watermill and wire formats
 	Marshaler Marshaler
 
-	// SubjectCalculator is a function used to transform a topic to an array of subjects (defaults to "{topic}.*")
+	// SubjectCalculator is a function used to transform a topic to an array of subjects on creation (defaults to "{topic}.*")
 	SubjectCalculator SubjectCalculator
+
+	// AutoProvision bypasses client validation and provisioning of streams
+	AutoProvision bool
 }
 
 func (c PublisherConfig) Validate() error {
@@ -43,15 +49,16 @@ func (c PublisherConfig) GetPublisherPublishConfig() PublisherPublishConfig {
 	return PublisherPublishConfig{
 		Marshaler:         c.Marshaler,
 		SubjectCalculator: c.SubjectCalculator,
+		AutoProvision:     c.AutoProvision,
 	}
 }
 
 type Publisher struct {
-	conn    *nats.Conn
-	config  PublisherPublishConfig
-	logger  watermill.LoggerAdapter
-	js      nats.JetStreamContext
-	streams *streamTopics
+	conn             *nats.Conn
+	config           PublisherPublishConfig
+	logger           watermill.LoggerAdapter
+	js               nats.JetStreamContext
+	topicInterpreter *topicInterpreter
 }
 
 // NewPublisher creates a new Publisher.
@@ -80,11 +87,11 @@ func NewPublisherWithNatsConn(conn *nats.Conn, config PublisherPublishConfig, lo
 	}
 
 	return &Publisher{
-		conn:    conn,
-		config:  config,
-		logger:  logger,
-		js:      js,
-		streams: newStreamTopics(js, config.SubjectCalculator),
+		conn:             conn,
+		config:           config,
+		logger:           logger,
+		js:               js,
+		topicInterpreter: newTopicInterpreter(js, config.SubjectCalculator, config.AutoProvision),
 	}, nil
 }
 
@@ -93,7 +100,7 @@ func NewPublisherWithNatsConn(conn *nats.Conn, config PublisherPublishConfig, lo
 // Publish will not return until an ack has been received from JetStream.
 // When one of messages delivery fails - function is interrupted.
 func (p *Publisher) Publish(topic string, messages ...*message.Message) error {
-	err := p.streams.init(topic)
+	err := p.topicInterpreter.ensureStream(topic)
 	if err != nil {
 		return err
 	}

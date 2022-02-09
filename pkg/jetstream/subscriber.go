@@ -76,8 +76,11 @@ type SubscriberConfig struct {
 	// SubscribeOptions defines nats options to be used when subscribing
 	SubscribeOptions []nats.SubOpt
 
-	// SubjectCalculator is a function used to transform a topic to an array of subjects (defaults to "{topic}.*")
+	// SubjectCalculator is a function used to transform a topic to an array of subjects on creation (defaults to "{topic}.*")
 	SubjectCalculator SubjectCalculator
+
+	// AutoProvision bypasses client validation and provisioning of streams
+	AutoProvision bool
 }
 
 type SubscriberSubscriptionConfig struct {
@@ -126,8 +129,11 @@ type SubscriberSubscriptionConfig struct {
 	// SubscribeOptions defines nats options to be used when subscribing
 	SubscribeOptions []nats.SubOpt
 
-	// SubjectCalculator is a function used to transform a topic to an array of subjects (defaults to "{topic}.*")
+	// SubjectCalculator is a function used to transform a topic to an array of subjects on creation (defaults to "{topic}.*")
 	SubjectCalculator SubjectCalculator
+
+	// AutoProvision bypasses client validation and provisioning of streams
+	AutoProvision bool
 }
 
 func (c *SubscriberConfig) GetStreamingSubscriberSubscriptionConfig() SubscriberSubscriptionConfig {
@@ -141,6 +147,7 @@ func (c *SubscriberConfig) GetStreamingSubscriberSubscriptionConfig() Subscriber
 		SubscribeTimeout:  c.SubscribeTimeout,
 		SubscribeOptions:  c.SubscribeOptions,
 		SubjectCalculator: c.SubjectCalculator,
+		AutoProvision:     c.AutoProvision,
 	}
 }
 
@@ -186,9 +193,9 @@ type Subscriber struct {
 	closed  bool
 	closing chan struct{}
 
-	outputsWg sync.WaitGroup
-	js        nats.JetStreamContext
-	streams   *streamTopics
+	outputsWg        sync.WaitGroup
+	js               nats.JetStreamContext
+	topicInterpreter *topicInterpreter
 }
 
 // NewSubscriber creates a new Subscriber.
@@ -225,12 +232,12 @@ func NewSubscriberWithNatsConn(conn *nats.Conn, config SubscriberSubscriptionCon
 	}
 
 	return &Subscriber{
-		conn:    conn,
-		logger:  logger,
-		config:  config,
-		closing: make(chan struct{}),
-		js:      js,
-		streams: newStreamTopics(js, config.SubjectCalculator),
+		conn:             conn,
+		logger:           logger,
+		config:           config,
+		closing:          make(chan struct{}),
+		js:               js,
+		topicInterpreter: newTopicInterpreter(js, config.SubjectCalculator, config.AutoProvision),
 	}, nil
 }
 
@@ -285,25 +292,13 @@ func (s *Subscriber) Subscribe(ctx context.Context, topic string) (<-chan *messa
 }
 
 func (s *Subscriber) SubscribeInitialize(topic string) error {
-	err := s.streams.init(topic)
+	err := s.topicInterpreter.ensureStream(topic)
 
 	if err != nil {
 		return errors.Wrap(err, "cannot initialize subscribe")
 	}
 
-	//TODO: revisit
-	sub, err := s.subscribe(topic, func(msg *nats.Msg) {
-		s.logger.Trace("message received in subscribe initialize will nak", nil)
-		err := msg.Nak()
-		if err != nil {
-			s.logger.Error("error naking message received on init", err, nil)
-		}
-	})
-	if err != nil {
-		return errors.Wrap(err, "cannot initialize subscribe")
-	}
-
-	return errors.Wrap(sub.Unsubscribe(), "cannot close after subscribe initialize")
+	return nil
 }
 
 func (s *Subscriber) subscribe(topic string, cb nats.MsgHandler) (*nats.Subscription, error) {
