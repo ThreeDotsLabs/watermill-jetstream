@@ -75,6 +75,9 @@ type SubscriberConfig struct {
 
 	// SubscribeOptions defines nats options to be used when subscribing
 	SubscribeOptions []nats.SubOpt
+
+	// SubjectCalculator is a function used to transform a topic to an array of subjects (defaults to "{topic}.*")
+	SubjectCalculator SubjectCalculator
 }
 
 type SubscriberSubscriptionConfig struct {
@@ -122,18 +125,22 @@ type SubscriberSubscriptionConfig struct {
 
 	// SubscribeOptions defines nats options to be used when subscribing
 	SubscribeOptions []nats.SubOpt
+
+	// SubjectCalculator is a function used to transform a topic to an array of subjects (defaults to "{topic}.*")
+	SubjectCalculator SubjectCalculator
 }
 
 func (c *SubscriberConfig) GetStreamingSubscriberSubscriptionConfig() SubscriberSubscriptionConfig {
 	return SubscriberSubscriptionConfig{
-		Unmarshaler:      c.Unmarshaler,
-		QueueGroup:       c.QueueGroup,
-		DurableName:      c.DurableName,
-		SubscribersCount: c.SubscribersCount,
-		AckWaitTimeout:   c.AckWaitTimeout,
-		CloseTimeout:     c.CloseTimeout,
-		SubscribeTimeout: c.SubscribeTimeout,
-		SubscribeOptions: c.SubscribeOptions,
+		Unmarshaler:       c.Unmarshaler,
+		QueueGroup:        c.QueueGroup,
+		DurableName:       c.DurableName,
+		SubscribersCount:  c.SubscribersCount,
+		AckWaitTimeout:    c.AckWaitTimeout,
+		CloseTimeout:      c.CloseTimeout,
+		SubscribeTimeout:  c.SubscribeTimeout,
+		SubscribeOptions:  c.SubscribeOptions,
+		SubjectCalculator: c.SubjectCalculator,
 	}
 }
 
@@ -181,6 +188,7 @@ type Subscriber struct {
 
 	outputsWg sync.WaitGroup
 	js        nats.JetStreamContext
+	streams   *streamTopics
 }
 
 // NewSubscriber creates a new Subscriber.
@@ -222,6 +230,7 @@ func NewSubscriberWithNatsConn(conn *nats.Conn, config SubscriberSubscriptionCon
 		config:  config,
 		closing: make(chan struct{}),
 		js:      js,
+		streams: newStreamTopics(js, config.SubjectCalculator),
 	}, nil
 }
 
@@ -276,7 +285,7 @@ func (s *Subscriber) Subscribe(ctx context.Context, topic string) (<-chan *messa
 }
 
 func (s *Subscriber) SubscribeInitialize(topic string) error {
-	err := initStream(s.js, topic)
+	err := s.streams.init(topic)
 
 	if err != nil {
 		return errors.Wrap(err, "cannot initialize subscribe")

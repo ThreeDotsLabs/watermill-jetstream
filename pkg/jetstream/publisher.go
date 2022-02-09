@@ -16,13 +16,19 @@ type PublisherConfig struct {
 	// NatsOptions are custom options for a connection.
 	NatsOptions []nats.Option
 
-	// Marshaler is marshaler used to marshal messages to stan format.
+	// Marshaler is marshaler used to marshal messages between watermill and wire formats
 	Marshaler Marshaler
+
+	// SubjectCalculator is a function used to transform a topic to an array of subjects (defaults to "{topic}.*")
+	SubjectCalculator SubjectCalculator
 }
 
 type PublisherPublishConfig struct {
-	// Marshaler is marshaler used to marshal messages to stan format.
+	// Marshaler is marshaler used to marshal messages between watermill and wire formats
 	Marshaler Marshaler
+
+	// SubjectCalculator is a function used to transform a topic to an array of subjects (defaults to "{topic}.*")
+	SubjectCalculator SubjectCalculator
 }
 
 func (c PublisherConfig) Validate() error {
@@ -35,15 +41,17 @@ func (c PublisherConfig) Validate() error {
 
 func (c PublisherConfig) GetPublisherPublishConfig() PublisherPublishConfig {
 	return PublisherPublishConfig{
-		Marshaler: c.Marshaler,
+		Marshaler:         c.Marshaler,
+		SubjectCalculator: c.SubjectCalculator,
 	}
 }
 
 type Publisher struct {
-	conn   *nats.Conn
-	config PublisherPublishConfig
-	logger watermill.LoggerAdapter
-	js     nats.JetStreamContext
+	conn    *nats.Conn
+	config  PublisherPublishConfig
+	logger  watermill.LoggerAdapter
+	js      nats.JetStreamContext
+	streams *streamTopics
 }
 
 // NewPublisher creates a new Publisher.
@@ -72,10 +80,11 @@ func NewPublisherWithNatsConn(conn *nats.Conn, config PublisherPublishConfig, lo
 	}
 
 	return &Publisher{
-		conn:   conn,
-		config: config,
-		logger: logger,
-		js:     js,
+		conn:    conn,
+		config:  config,
+		logger:  logger,
+		js:      js,
+		streams: newStreamTopics(js, config.SubjectCalculator),
 	}, nil
 }
 
@@ -84,8 +93,7 @@ func NewPublisherWithNatsConn(conn *nats.Conn, config PublisherPublishConfig, lo
 // Publish will not return until an ack has been received from JetStream.
 // When one of messages delivery fails - function is interrupted.
 func (p *Publisher) Publish(topic string, messages ...*message.Message) error {
-	err := initStream(p.js, topic)
-
+	err := p.streams.init(topic)
 	if err != nil {
 		return err
 	}
