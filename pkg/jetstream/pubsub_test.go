@@ -52,14 +52,17 @@ func newPubSub(t *testing.T, clientID string, queueName string) (message.Publish
 
 	defer c.Close()
 
+	jetstreamOptions := make([]nats.JSOpt, 0)
+
 	_, err = c.JetStream()
 	require.NoError(t, err)
 
 	pub, err := jetstream.NewPublisher(jetstream.PublisherConfig{
-		URL:           natsURL,
-		Marshaler:     jetstream.GobMarshaler{},
-		NatsOptions:   options,
-		AutoProvision: false,
+		URL:              natsURL,
+		Marshaler:        jetstream.GobMarshaler{},
+		NatsOptions:      options,
+		JetstreamOptions: jetstreamOptions,
+		AutoProvision:    false,
 	}, logger)
 	require.NoError(t, err)
 
@@ -73,6 +76,7 @@ func newPubSub(t *testing.T, clientID string, queueName string) (message.Publish
 		Unmarshaler:      jetstream.GobMarshaler{},
 		NatsOptions:      options,
 		SubscribeOptions: subscribeOptions,
+		JetstreamOptions: jetstreamOptions,
 		CloseTimeout:     30 * time.Second,
 		AutoProvision:    true,
 	}, logger)

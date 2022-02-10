@@ -16,6 +16,9 @@ type PublisherConfig struct {
 	// NatsOptions are custom options for a connection.
 	NatsOptions []nats.Option
 
+	// JetstreamOptions are custom Jetstream options for a connection.
+	JetstreamOptions []nats.JSOpt
+
 	// Marshaler is marshaler used to marshal messages between watermill and wire formats
 	Marshaler Marshaler
 
@@ -24,6 +27,9 @@ type PublisherConfig struct {
 
 	// AutoProvision bypasses client validation and provisioning of streams
 	AutoProvision bool
+
+	// PublishOptions are custom publish option to be used on all publication
+	PublishOptions []nats.PubOpt
 }
 
 type PublisherPublishConfig struct {
@@ -35,6 +41,12 @@ type PublisherPublishConfig struct {
 
 	// AutoProvision bypasses client validation and provisioning of streams
 	AutoProvision bool
+
+	// JetstreamOptions are custom Jetstream options for a connection.
+	JetstreamOptions []nats.JSOpt
+
+	// PublishOptions are custom publish option to be used on all publication
+	PublishOptions []nats.PubOpt
 }
 
 func (c PublisherConfig) Validate() error {
@@ -50,6 +62,8 @@ func (c PublisherConfig) GetPublisherPublishConfig() PublisherPublishConfig {
 		Marshaler:         c.Marshaler,
 		SubjectCalculator: c.SubjectCalculator,
 		AutoProvision:     c.AutoProvision,
+		JetstreamOptions:  c.JetstreamOptions,
+		PublishOptions:    c.PublishOptions,
 	}
 }
 
@@ -80,7 +94,7 @@ func NewPublisherWithNatsConn(conn *nats.Conn, config PublisherPublishConfig, lo
 		logger = watermill.NopLogger{}
 	}
 
-	js, err := conn.JetStream()
+	js, err := conn.JetStream(config.JetstreamOptions...)
 
 	if err != nil {
 		return nil, err
@@ -118,7 +132,7 @@ func (p *Publisher) Publish(topic string, messages ...*message.Message) error {
 			return err
 		}
 
-		if _, err := p.js.Publish(fmt.Sprintf("%s.%s", topic, msg.UUID), b); err != nil {
+		if _, err := p.js.Publish(fmt.Sprintf("%s.%s", topic, msg.UUID), b, p.config.PublishOptions...); err != nil {
 			return errors.Wrap(err, "sending message failed")
 		}
 	}

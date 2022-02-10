@@ -70,6 +70,9 @@ type SubscriberConfig struct {
 	// 		nats.URL("nats://localhost:4222")
 	NatsOptions []nats.Option
 
+	// JetstreamOptions are custom Jetstream options for a connection.
+	JetstreamOptions []nats.JSOpt
+
 	// Unmarshaler is an unmarshaler used to unmarshaling messages from NATS format to Watermill format.
 	Unmarshaler Unmarshaler
 
@@ -126,6 +129,9 @@ type SubscriberSubscriptionConfig struct {
 	// SubscribeTimeout determines how long subscriber will wait for a successful subscription
 	SubscribeTimeout time.Duration
 
+	// JetstreamOptions are custom Jetstream options for a connection.
+	JetstreamOptions []nats.JSOpt
+
 	// SubscribeOptions defines nats options to be used when subscribing
 	SubscribeOptions []nats.SubOpt
 
@@ -148,6 +154,7 @@ func (c *SubscriberConfig) GetStreamingSubscriberSubscriptionConfig() Subscriber
 		SubscribeOptions:  c.SubscribeOptions,
 		SubjectCalculator: c.SubjectCalculator,
 		AutoProvision:     c.AutoProvision,
+		JetstreamOptions:  c.JetstreamOptions,
 	}
 }
 
@@ -225,7 +232,7 @@ func NewSubscriberWithNatsConn(conn *nats.Conn, config SubscriberSubscriptionCon
 		logger = watermill.NopLogger{}
 	}
 
-	js, err := conn.JetStream()
+	js, err := conn.JetStream(config.JetstreamOptions...)
 
 	if err != nil {
 		return nil, err
