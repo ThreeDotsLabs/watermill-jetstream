@@ -42,9 +42,16 @@ func newPubSub(t *testing.T, clientID string, queueName string) (message.Publish
 		nats.ReconnectWait(1 * time.Second),
 	}
 
+	subscriberCount := 1
+
+	if queueName != "" {
+		subscriberCount = 2
+	}
+
 	subscribeOptions := []nats.SubOpt{
 		nats.DeliverAll(),
 		nats.AckExplicit(),
+		nats.MaxAckPending(subscriberCount),
 	}
 
 	c, err := nats.Connect(natsURL, options...)
@@ -71,7 +78,7 @@ func newPubSub(t *testing.T, clientID string, queueName string) (message.Publish
 		ClientID:         clientID,
 		QueueGroup:       queueName,
 		DurableName:      queueName,
-		SubscribersCount: 1, //multiple only works if a queue group specified
+		SubscribersCount: subscriberCount, //multiple only works if a queue group specified
 		AckWaitTimeout:   30 * time.Second,
 		Unmarshaler:      jetstream.GobMarshaler{},
 		NatsOptions:      options,

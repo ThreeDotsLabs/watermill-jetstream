@@ -2,7 +2,7 @@ package jetstream
 
 import (
 	"fmt"
-	nats "github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go"
 	"github.com/pkg/errors"
 
 	"github.com/ThreeDotsLabs/watermill"

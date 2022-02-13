@@ -142,7 +142,7 @@ type SubscriberSubscriptionConfig struct {
 	AutoProvision bool
 }
 
-func (c *SubscriberConfig) GetStreamingSubscriberSubscriptionConfig() SubscriberSubscriptionConfig {
+func (c *SubscriberConfig) GetSubscriberSubscriptionConfig() SubscriberSubscriptionConfig {
 	return SubscriberSubscriptionConfig{
 		Unmarshaler:       c.Unmarshaler,
 		QueueGroup:        c.QueueGroup,
@@ -218,7 +218,7 @@ func NewSubscriber(config SubscriberConfig, logger watermill.LoggerAdapter) (*Su
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot connect to NATS")
 	}
-	return NewSubscriberWithNatsConn(conn, config.GetStreamingSubscriberSubscriptionConfig(), logger)
+	return NewSubscriberWithNatsConn(conn, config.GetSubscriberSubscriptionConfig(), logger)
 }
 
 func NewSubscriberWithNatsConn(conn *nats.Conn, config SubscriberSubscriptionConfig, logger watermill.LoggerAdapter) (*Subscriber, error) {

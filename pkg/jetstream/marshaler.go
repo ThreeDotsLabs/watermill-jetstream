@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/gob"
 
-	nats "github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go"
 	"github.com/pkg/errors"
 
 	"github.com/ThreeDotsLabs/watermill/message"
