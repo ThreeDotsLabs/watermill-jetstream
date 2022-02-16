@@ -49,11 +49,20 @@ type PublisherPublishConfig struct {
 	PublishOptions []nats.PubOpt
 }
 
+func (c *PublisherConfig) setDefaults() {
+	if c.SubjectCalculator == nil {
+		c.SubjectCalculator = defaultSubjectCalculator
+	}
+}
+
 func (c PublisherConfig) Validate() error {
 	if c.Marshaler == nil {
 		return errors.New("PublisherConfig.Marshaler is missing")
 	}
 
+	if c.SubjectCalculator == nil {
+		return errors.New("PublisherConfig.SubjectCalculator is missing")
+	}
 	return nil
 }
 
@@ -77,6 +86,8 @@ type Publisher struct {
 
 // NewPublisher creates a new Publisher.
 func NewPublisher(config PublisherConfig, logger watermill.LoggerAdapter) (*Publisher, error) {
+	config.setDefaults()
+
 	if err := config.Validate(); err != nil {
 		return nil, err
 	}

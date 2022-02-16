@@ -2,7 +2,6 @@ package jetstream
 
 import (
 	"context"
-	"fmt"
 	internalSync "github.com/ThreeDotsLabs/watermill/pubsub/sync"
 	"sync"
 	"time"
@@ -171,6 +170,10 @@ func (c *SubscriberSubscriptionConfig) setDefaults() {
 	if c.SubscribeTimeout <= 0 {
 		c.SubscribeTimeout = time.Second * 30
 	}
+
+	if c.SubjectCalculator == nil {
+		c.SubjectCalculator = defaultSubjectCalculator
+	}
 }
 
 func (c *SubscriberSubscriptionConfig) Validate() error {
@@ -184,6 +187,10 @@ func (c *SubscriberSubscriptionConfig) Validate() error {
 				"you need to also set SubscriberConfig.QueueGroup, " +
 				"in other case you will receive duplicated messages",
 		)
+	}
+
+	if c.SubjectCalculator == nil {
+		return errors.New("SubscriberSubscriptionConfig.SubjectCalculator is required.")
 	}
 
 	return nil
@@ -309,7 +316,7 @@ func (s *Subscriber) SubscribeInitialize(topic string) error {
 }
 
 func (s *Subscriber) subscribe(topic string, cb nats.MsgHandler) (*nats.Subscription, error) {
-	subTopic := fmt.Sprintf("%s.*", topic)
+	primarySubject := s.config.SubjectCalculator(topic).Primary
 
 	opts := s.config.SubscribeOptions
 
@@ -321,7 +328,7 @@ func (s *Subscriber) subscribe(topic string, cb nats.MsgHandler) (*nats.Subscrip
 
 	if s.config.QueueGroup != "" {
 		return s.js.QueueSubscribe(
-			subTopic,
+			primarySubject,
 			s.config.QueueGroup,
 			cb,
 			opts...,
@@ -329,7 +336,7 @@ func (s *Subscriber) subscribe(topic string, cb nats.MsgHandler) (*nats.Subscrip
 	}
 
 	return s.js.Subscribe(
-		subTopic,
+		primarySubject,
 		cb,
 		opts...,
 	)

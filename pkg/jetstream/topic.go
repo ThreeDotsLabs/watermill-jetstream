@@ -5,7 +5,16 @@ import (
 	"github.com/nats-io/nats.go"
 )
 
-type SubjectCalculator func(topic string) []string
+type SubjectCalculator func(topic string) *Subjects
+
+type Subjects struct {
+	Primary    string
+	Additional []string
+}
+
+func (s *Subjects) All() []string {
+	return append([]string{s.Primary}, s.Additional...)
+}
 
 type topicInterpreter struct {
 	js                nats.JetStreamContext
@@ -13,8 +22,10 @@ type topicInterpreter struct {
 	autoProvision     bool
 }
 
-func defaultSubjectCalculator(topic string) []string {
-	return []string{fmt.Sprintf("%s.*", topic)}
+func defaultSubjectCalculator(topic string) *Subjects {
+	return &Subjects{
+		Primary: fmt.Sprintf("%s.*", topic),
+	}
 }
 
 func newTopicInterpreter(js nats.JetStreamContext, formatter SubjectCalculator, autoProvision bool) *topicInterpreter {
@@ -39,7 +50,7 @@ func (b *topicInterpreter) ensureStream(topic string) error {
 			_, err = b.js.AddStream(&nats.StreamConfig{
 				Name:        topic,
 				Description: "",
-				Subjects:    b.subjectCalculator(topic),
+				Subjects:    b.subjectCalculator(topic).All(),
 			})
 
 			if err != nil {
