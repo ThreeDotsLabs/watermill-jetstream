@@ -80,7 +80,7 @@ type Publisher struct {
 	conn             *nats.Conn
 	config           PublisherPublishConfig
 	logger           watermill.LoggerAdapter
-	js               nats.JetStreamContext
+	js               nats.JetStream
 	topicInterpreter *topicInterpreter
 }
 

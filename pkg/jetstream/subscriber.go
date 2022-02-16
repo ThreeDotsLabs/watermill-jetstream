@@ -208,7 +208,7 @@ type Subscriber struct {
 	closing chan struct{}
 
 	outputsWg        sync.WaitGroup
-	js               nats.JetStreamContext
+	js               nats.JetStream
 	topicInterpreter *topicInterpreter
 }
 

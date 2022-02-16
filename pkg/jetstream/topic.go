@@ -17,7 +17,7 @@ func (s *Subjects) All() []string {
 }
 
 type topicInterpreter struct {
-	js                nats.JetStreamContext
+	js                nats.JetStreamManager
 	subjectCalculator SubjectCalculator
 }
 
@@ -27,7 +27,7 @@ func defaultSubjectCalculator(topic string) *Subjects {
 	}
 }
 
-func newTopicInterpreter(js nats.JetStreamContext, formatter SubjectCalculator) *topicInterpreter {
+func newTopicInterpreter(js nats.JetStreamManager, formatter SubjectCalculator) *topicInterpreter {
 	if formatter == nil {
 		formatter = defaultSubjectCalculator
 	}
