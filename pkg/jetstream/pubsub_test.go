@@ -69,7 +69,7 @@ func newPubSub(t *testing.T, clientID string, queueName string) (message.Publish
 		Marshaler:        jetstream.GobMarshaler{},
 		NatsOptions:      options,
 		JetstreamOptions: jetstreamOptions,
-		AutoProvision:    false,
+		AutoProvision:    true,
 	}, logger)
 	require.NoError(t, err)
 
@@ -85,7 +85,7 @@ func newPubSub(t *testing.T, clientID string, queueName string) (message.Publish
 		SubscribeOptions: subscribeOptions,
 		JetstreamOptions: jetstreamOptions,
 		CloseTimeout:     30 * time.Second,
-		AutoProvision:    true,
+		AutoProvision:    false, // tests use SubscribeInitialize
 	}, logger)
 	require.NoError(t, err)
 

@@ -251,7 +251,7 @@ func NewSubscriberWithNatsConn(conn *nats.Conn, config SubscriberSubscriptionCon
 		config:           config,
 		closing:          make(chan struct{}),
 		js:               js,
-		topicInterpreter: newTopicInterpreter(js, config.SubjectCalculator, config.AutoProvision),
+		topicInterpreter: newTopicInterpreter(js, config.SubjectCalculator),
 	}, nil
 }
 
@@ -317,6 +317,13 @@ func (s *Subscriber) SubscribeInitialize(topic string) error {
 
 func (s *Subscriber) subscribe(topic string, cb nats.MsgHandler) (*nats.Subscription, error) {
 	primarySubject := s.config.SubjectCalculator(topic).Primary
+
+	if s.config.AutoProvision {
+		err := s.SubscribeInitialize(primarySubject)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	opts := s.config.SubscribeOptions
 

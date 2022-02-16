@@ -116,7 +116,7 @@ func NewPublisherWithNatsConn(conn *nats.Conn, config PublisherPublishConfig, lo
 		config:           config,
 		logger:           logger,
 		js:               js,
-		topicInterpreter: newTopicInterpreter(js, config.SubjectCalculator, config.AutoProvision),
+		topicInterpreter: newTopicInterpreter(js, config.SubjectCalculator),
 	}, nil
 }
 
@@ -125,9 +125,11 @@ func NewPublisherWithNatsConn(conn *nats.Conn, config PublisherPublishConfig, lo
 // Publish will not return until an ack has been received from JetStream.
 // When one of messages delivery fails - function is interrupted.
 func (p *Publisher) Publish(topic string, messages ...*message.Message) error {
-	err := p.topicInterpreter.ensureStream(topic)
-	if err != nil {
-		return err
+	if p.config.AutoProvision {
+		err := p.topicInterpreter.ensureStream(topic)
+		if err != nil {
+			return err
+		}
 	}
 
 	for _, msg := range messages {

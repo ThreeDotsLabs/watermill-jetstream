@@ -19,7 +19,6 @@ func (s *Subjects) All() []string {
 type topicInterpreter struct {
 	js                nats.JetStreamContext
 	subjectCalculator SubjectCalculator
-	autoProvision     bool
 }
 
 func defaultSubjectCalculator(topic string) *Subjects {
@@ -28,7 +27,7 @@ func defaultSubjectCalculator(topic string) *Subjects {
 	}
 }
 
-func newTopicInterpreter(js nats.JetStreamContext, formatter SubjectCalculator, autoProvision bool) *topicInterpreter {
+func newTopicInterpreter(js nats.JetStreamContext, formatter SubjectCalculator) *topicInterpreter {
 	if formatter == nil {
 		formatter = defaultSubjectCalculator
 	}
@@ -36,26 +35,21 @@ func newTopicInterpreter(js nats.JetStreamContext, formatter SubjectCalculator, 
 	return &topicInterpreter{
 		js:                js,
 		subjectCalculator: formatter,
-		autoProvision:     autoProvision,
 	}
 }
 
 func (b *topicInterpreter) ensureStream(topic string) error {
-	var err error
+	_, err := b.js.StreamInfo(topic)
 
-	if b.autoProvision {
-		_, err = b.js.StreamInfo(topic)
+	if err != nil {
+		_, err = b.js.AddStream(&nats.StreamConfig{
+			Name:        topic,
+			Description: "",
+			Subjects:    b.subjectCalculator(topic).All(),
+		})
 
 		if err != nil {
-			_, err = b.js.AddStream(&nats.StreamConfig{
-				Name:        topic,
-				Description: "",
-				Subjects:    b.subjectCalculator(topic).All(),
-			})
-
-			if err != nil {
-				return err
-			}
+			return err
 		}
 	}
 
