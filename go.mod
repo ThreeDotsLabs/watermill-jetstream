@@ -2,6 +2,8 @@ module github.com/AlexCuse/watermill-jetstream
 
 go 1.17
 
+replace github.com/ThreeDotsLabs/watermill => github.com/AlexCuse/watermill v1.2.0-rc.9.0.20220220204212-e3ba4405bc1e
+
 require (
 	github.com/ThreeDotsLabs/watermill v1.2.0-rc.9
 	github.com/nats-io/nats.go v1.13.1-0.20220202232944-a0a6a71ede98

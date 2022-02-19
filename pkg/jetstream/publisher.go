@@ -30,6 +30,9 @@ type PublisherConfig struct {
 
 	// PublishOptions are custom publish option to be used on all publication
 	PublishOptions []nats.PubOpt
+
+	// TrackMsgId uses the Nats.MsgId option with the msg UUID to prevent duplication
+	TrackMsgId bool
 }
 
 type PublisherPublishConfig struct {
@@ -47,6 +50,9 @@ type PublisherPublishConfig struct {
 
 	// PublishOptions are custom publish option to be used on all publication
 	PublishOptions []nats.PubOpt
+
+	// TrackMsgId uses the Nats.MsgId option with the msg UUID to prevent duplication
+	TrackMsgId bool
 }
 
 func (c *PublisherConfig) setDefaults() {
@@ -73,6 +79,7 @@ func (c PublisherConfig) GetPublisherPublishConfig() PublisherPublishConfig {
 		AutoProvision:     c.AutoProvision,
 		JetstreamOptions:  c.JetstreamOptions,
 		PublishOptions:    c.PublishOptions,
+		TrackMsgId:        c.TrackMsgId,
 	}
 }
 
@@ -145,7 +152,13 @@ func (p *Publisher) Publish(topic string, messages ...*message.Message) error {
 			return err
 		}
 
-		if _, err := p.js.Publish(fmt.Sprintf("%s.%s", topic, msg.UUID), b, p.config.PublishOptions...); err != nil {
+		publishOpts := p.config.PublishOptions
+
+		if p.config.TrackMsgId {
+			publishOpts = append(publishOpts, nats.MsgId(msg.UUID))
+		}
+
+		if _, err := p.js.Publish(fmt.Sprintf("%s.%s", topic, msg.UUID), b, publishOpts...); err != nil {
 			return errors.Wrap(err, "sending message failed")
 		}
 	}

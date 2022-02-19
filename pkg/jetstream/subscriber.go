@@ -2,15 +2,13 @@ package jetstream
 
 import (
 	"context"
-	internalSync "github.com/ThreeDotsLabs/watermill/pubsub/sync"
-	"sync"
-	"time"
-
-	"github.com/nats-io/nats.go"
-	"github.com/pkg/errors"
-
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
+	internalSync "github.com/ThreeDotsLabs/watermill/pubsub/sync"
+	"github.com/nats-io/nats.go"
+	"github.com/pkg/errors"
+	"sync"
+	"time"
 )
 
 type SubscriberConfig struct {
@@ -83,6 +81,9 @@ type SubscriberConfig struct {
 
 	// AutoProvision bypasses client validation and provisioning of streams
 	AutoProvision bool
+
+	// AckSync enables synchronous acknowledgement (needed for exactly once processing)
+	AckSync bool
 }
 
 type SubscriberSubscriptionConfig struct {
@@ -139,6 +140,9 @@ type SubscriberSubscriptionConfig struct {
 
 	// AutoProvision bypasses client validation and provisioning of streams
 	AutoProvision bool
+
+	// AckSync enables synchronous acknowledgement (needed for exactly once processing)
+	AckSync bool
 }
 
 func (c *SubscriberConfig) GetSubscriberSubscriptionConfig() SubscriberSubscriptionConfig {
@@ -154,6 +158,7 @@ func (c *SubscriberConfig) GetSubscriberSubscriptionConfig() SubscriberSubscript
 		SubjectCalculator: c.SubjectCalculator,
 		AutoProvision:     c.AutoProvision,
 		JetstreamOptions:  c.JetstreamOptions,
+		AckSync:           c.AckSync,
 	}
 }
 
@@ -319,7 +324,7 @@ func (s *Subscriber) subscribe(topic string, cb nats.MsgHandler) (*nats.Subscrip
 	primarySubject := s.config.SubjectCalculator(topic).Primary
 
 	if s.config.AutoProvision {
-		err := s.SubscribeInitialize(primarySubject)
+		err := s.SubscribeInitialize(topic)
 		if err != nil {
 			return nil, err
 		}
@@ -388,7 +393,15 @@ func (s *Subscriber) processMessage(
 
 	select {
 	case <-msg.Acked():
-		if err := m.AckSync(); err != nil {
+		var err error
+
+		if s.config.AckSync {
+			err = m.AckSync()
+		} else {
+			err = m.Ack()
+		}
+
+		if err != nil {
 			s.logger.Error("Cannot send ack", err, messageLogFields)
 			return
 		}

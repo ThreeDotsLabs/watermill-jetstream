@@ -19,6 +19,9 @@ test_stress:
 test_reconnect:
 	go test -tags=reconnect ./...
 
+test_exactlyonce:
+	go test -tags=exactlyonce ./...
+
 fmt:
 	gofmt -l $$(find . -type f -name '*.go'| grep -v "/vendor/")
 	[ "`gofmt -l $$(find . -type f -name '*.go'| grep -v "/vendor/")`" = "" ]
