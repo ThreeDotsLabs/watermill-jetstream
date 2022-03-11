@@ -9,6 +9,7 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 )
 
+// PublisherConfig is the configuration to create a publisher
 type PublisherConfig struct {
 	// URL is the NATS URL.
 	URL string
@@ -35,6 +36,7 @@ type PublisherConfig struct {
 	TrackMsgId bool
 }
 
+// PublisherPublishConfig is the configuration subset needed for an individual publish call
 type PublisherPublishConfig struct {
 	// Marshaler is marshaler used to marshal messages between watermill and wire formats
 	Marshaler Marshaler
@@ -61,6 +63,7 @@ func (c *PublisherConfig) setDefaults() {
 	}
 }
 
+// Validate ensures configuration is valid before use
 func (c PublisherConfig) Validate() error {
 	if c.Marshaler == nil {
 		return errors.New("PublisherConfig.Marshaler is missing")
@@ -72,6 +75,7 @@ func (c PublisherConfig) Validate() error {
 	return nil
 }
 
+// GetPublisherPublishConfig gets the configuration subset needed for individual publish calls once a connection has been established
 func (c PublisherConfig) GetPublisherPublishConfig() PublisherPublishConfig {
 	return PublisherPublishConfig{
 		Marshaler:         c.Marshaler,
@@ -83,6 +87,7 @@ func (c PublisherConfig) GetPublisherPublishConfig() PublisherPublishConfig {
 	}
 }
 
+// Publisher provides the jetstream interface for watermill publish operations
 type Publisher struct {
 	conn             *nats.Conn
 	config           PublisherPublishConfig
@@ -107,6 +112,7 @@ func NewPublisher(config PublisherConfig, logger watermill.LoggerAdapter) (*Publ
 	return NewPublisherWithNatsConn(conn, config.GetPublisherPublishConfig(), logger)
 }
 
+// NewPublisherWithNatsConn creates a new Publisher with the provided nats connection.
 func NewPublisherWithNatsConn(conn *nats.Conn, config PublisherPublishConfig, logger watermill.LoggerAdapter) (*Publisher, error) {
 	if logger == nil {
 		logger = watermill.NopLogger{}
@@ -166,6 +172,7 @@ func (p *Publisher) Publish(topic string, messages ...*message.Message) error {
 	return nil
 }
 
+// Close closes the publisher and the underlying connection
 func (p *Publisher) Close() error {
 	p.logger.Trace("Closing publisher", nil)
 	defer p.logger.Trace("Publisher closed", nil)

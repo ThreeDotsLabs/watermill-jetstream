@@ -27,8 +27,9 @@ func getTestFeatures() tests.Features {
 
 func newPubSub(t *testing.T, clientID string, queueName string, exactlyOnce bool) (message.Publisher, message.Subscriber) {
 	trace := os.Getenv("WATERMILL_TEST_NATS_TRACE")
+	debug := os.Getenv("WATERMILL_TEST_NATS_DEBUG")
 
-	logger := watermill.NewStdLogger(true, strings.ToLower(trace) == "trace")
+	logger := watermill.NewStdLogger(strings.ToLower(debug) == "true", strings.ToLower(trace) == "true")
 
 	natsURL := os.Getenv("WATERMILL_TEST_NATS_URL")
 	if natsURL == "" {
