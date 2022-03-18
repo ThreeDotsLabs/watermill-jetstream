@@ -184,6 +184,7 @@ func (c *SubscriberSubscriptionConfig) setDefaults() {
 	}
 }
 
+// Validate ensures configuration is valid before use
 func (c *SubscriberSubscriptionConfig) Validate() error {
 	if c.Unmarshaler == nil {
 		return errors.New("SubscriberConfig.Unmarshaler is missing")
@@ -204,6 +205,7 @@ func (c *SubscriberSubscriptionConfig) Validate() error {
 	return nil
 }
 
+// Subscriber provides the jetstream implementation for watermill subscribe operations
 type Subscriber struct {
 	conn   *nats.Conn
 	logger watermill.LoggerAdapter
@@ -221,13 +223,6 @@ type Subscriber struct {
 }
 
 // NewSubscriber creates a new Subscriber.
-//
-// When using custom NATS hostname, you should pass it by options SubscriberConfig.NatsOptions:
-//		// ...
-//		NatsOptions: []nats.Option{
-//			nats.URL("nats://your-nats-hostname:4222"),
-//		}
-//		// ...
 func NewSubscriber(config SubscriberConfig, logger watermill.LoggerAdapter) (*Subscriber, error) {
 	conn, err := nats.Connect(config.URL, config.NatsOptions...)
 	if err != nil {
@@ -236,6 +231,7 @@ func NewSubscriber(config SubscriberConfig, logger watermill.LoggerAdapter) (*Su
 	return NewSubscriberWithNatsConn(conn, config.GetSubscriberSubscriptionConfig(), logger)
 }
 
+// NewSubscriberWithNatsConn creates a new Subscriber with the provided nats connection.
 func NewSubscriberWithNatsConn(conn *nats.Conn, config SubscriberSubscriptionConfig, logger watermill.LoggerAdapter) (*Subscriber, error) {
 	config.setDefaults()
 
@@ -264,8 +260,6 @@ func NewSubscriberWithNatsConn(conn *nats.Conn, config SubscriberSubscriptionCon
 }
 
 // Subscribe subscribes messages from JetStream.
-//
-// Subscribe will spawn SubscribersCount goroutines making subscribe.
 func (s *Subscriber) Subscribe(ctx context.Context, topic string) (<-chan *message.Message, error) {
 	output := make(chan *message.Message)
 
@@ -313,6 +307,7 @@ func (s *Subscriber) Subscribe(ctx context.Context, topic string) (<-chan *messa
 	return output, nil
 }
 
+// SubscribeInitialize offers a way to ensure the stream for a topic exists prior to subscribe
 func (s *Subscriber) SubscribeInitialize(topic string) error {
 	err := s.topicInterpreter.ensureStream(topic)
 
@@ -330,7 +325,7 @@ func (s *Subscriber) subscribe(topic string, cb nats.MsgHandler) (*nats.Subscrip
 			return nil, err
 		}
 	}
-	
+
 	primarySubject := s.config.SubjectCalculator(topic).Primary
 
 	opts := s.config.SubscribeOptions
@@ -428,6 +423,7 @@ func (s *Subscriber) processMessage(
 	}
 }
 
+// Close closes the publisher and the underlying connection.  It will attempt to wait for in-flight messages to complete.
 func (s *Subscriber) Close() error {
 	s.subsLock.Lock()
 	defer s.subsLock.Unlock()

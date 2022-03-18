@@ -87,7 +87,7 @@ func (c PublisherConfig) GetPublisherPublishConfig() PublisherPublishConfig {
 	}
 }
 
-// Publisher provides the jetstream interface for watermill publish operations
+// Publisher provides the jetstream implementation for watermill publish operations
 type Publisher struct {
 	conn             *nats.Conn
 	config           PublisherPublishConfig
