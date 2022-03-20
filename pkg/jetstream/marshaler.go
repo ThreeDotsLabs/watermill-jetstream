@@ -3,6 +3,7 @@ package jetstream
 import (
 	"bytes"
 	"encoding/gob"
+	"encoding/json"
 
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/nats-io/nats.go"
@@ -52,6 +53,34 @@ func (GobMarshaler) Unmarshal(natsMsg *nats.Msg) (*message.Message, error) {
 
 	var decodedMsg message.Message
 	if err := decoder.Decode(&decodedMsg); err != nil {
+		return nil, errors.Wrap(err, "cannot decode message")
+	}
+
+	// creating clean message, to avoid invalid internal state with ack
+	msg := message.NewMessage(decodedMsg.UUID, decodedMsg.Payload)
+	msg.Metadata = decodedMsg.Metadata
+
+	return msg, nil
+}
+
+// JSONMarshaler uses encoding/json to marshal Watermill messages.
+type JSONMarshaler struct{}
+
+// Marshal transforms a watermill message into JSON format.
+func (JSONMarshaler) Marshal(topic string, msg *message.Message) ([]byte, error) {
+	bytes, err := json.Marshal(msg)
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot encode message")
+	}
+
+	return bytes, nil
+}
+
+// Unmarshal extracts a watermill message from a nats message.
+func (JSONMarshaler) Unmarshal(natsMsg *nats.Msg) (*message.Message, error) {
+	var decodedMsg message.Message
+	err := json.Unmarshal(natsMsg.Data, &decodedMsg)
+	if err != nil {
 		return nil, errors.Wrap(err, "cannot decode message")
 	}
 
