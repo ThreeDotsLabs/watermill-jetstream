@@ -30,6 +30,16 @@ func newPubSub(t *testing.T, clientID string, queueName string, exactlyOnce bool
 	trace := os.Getenv("WATERMILL_TEST_NATS_TRACE")
 	debug := os.Getenv("WATERMILL_TEST_NATS_DEBUG")
 
+	format := os.Getenv("WATERMILL_TEST_NATS_FORMAT")
+
+	var marshaler jetstream.MarshalerUnmarshaler
+
+	if strings.ToLower(format) == "json" {
+		marshaler = &jetstream.JSONMarshaler{}
+	} else {
+		marshaler = &jetstream.GobMarshaler{}
+	}
+
 	logger := watermill.NewStdLogger(strings.ToLower(debug) == "true", strings.ToLower(trace) == "true")
 
 	natsURL := os.Getenv("WATERMILL_TEST_NATS_URL")
@@ -66,7 +76,7 @@ func newPubSub(t *testing.T, clientID string, queueName string, exactlyOnce bool
 
 	pub, err := jetstream.NewPublisher(jetstream.PublisherConfig{
 		URL:              natsURL,
-		Marshaler:        jetstream.GobMarshaler{},
+		Marshaler:        marshaler,
 		NatsOptions:      options,
 		JetstreamOptions: jetstreamOptions,
 		AutoProvision:    true,
@@ -81,7 +91,7 @@ func newPubSub(t *testing.T, clientID string, queueName string, exactlyOnce bool
 		DurableName:      queueName,
 		SubscribersCount: subscriberCount, //multiple only works if a queue group specified
 		AckWaitTimeout:   30 * time.Second,
-		Unmarshaler:      jetstream.GobMarshaler{},
+		Unmarshaler:      marshaler,
 		NatsOptions:      options,
 		SubscribeOptions: subscribeOptions,
 		JetstreamOptions: jetstreamOptions,
