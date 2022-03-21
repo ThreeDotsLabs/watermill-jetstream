@@ -2,11 +2,11 @@ package jetstream
 
 import (
 	"fmt"
-	"github.com/nats-io/nats.go"
-	"github.com/pkg/errors"
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
+	"github.com/nats-io/nats.go"
+	"github.com/pkg/errors"
 )
 
 // PublisherConfig is the configuration to create a publisher

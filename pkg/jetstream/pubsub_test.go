@@ -1,8 +1,9 @@
 package jetstream_test
 
 import (
-	"github.com/ThreeDotsLabs/watermill/pubsub/tests"
 	"testing"
+
+	"github.com/ThreeDotsLabs/watermill/pubsub/tests"
 )
 
 func TestPublishSubscribe(t *testing.T) {

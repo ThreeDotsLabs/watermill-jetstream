@@ -2,6 +2,7 @@ package jetstream
 
 import (
 	"fmt"
+
 	"github.com/nats-io/nats.go"
 )
 

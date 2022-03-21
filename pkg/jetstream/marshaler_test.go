@@ -5,15 +5,11 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/nats-io/nats.go"
-
-	"github.com/stretchr/testify/assert"
-
-	"github.com/stretchr/testify/require"
-
-	"github.com/ThreeDotsLabs/watermill/message"
-
 	"github.com/AlexCuse/watermill-jetstream/pkg/jetstream"
+	"github.com/ThreeDotsLabs/watermill/message"
+	"github.com/nats-io/nats.go"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGobMarshaler(t *testing.T) {
