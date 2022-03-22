@@ -17,13 +17,6 @@ type SubscriberConfig struct {
 	// URL is the URL to the broker
 	URL string
 
-	// ClientID is the JetStream client ID to connect with.
-	// ClientID can contain only alphanumeric and `-` or `_` characters.
-	//
-	// Using DurableName causes the JetStream server to track
-	// the last acknowledged message for that ClientID + DurableName.
-	ClientID string
-
 	// QueueGroup is the JetStream queue group.
 	//
 	// All subscriptions with the same queue name (regardless of the connection they originate from)

@@ -89,7 +89,6 @@ func newPubSub(t *testing.T, clientID string, queueName string, exactlyOnce bool
 
 	sub, err := jetstream.NewSubscriber(jetstream.SubscriberConfig{
 		URL:              natsURL,
-		ClientID:         clientID,
 		QueueGroup:       queueName,
 		DurableName:      queueName,
 		SubscribersCount: subscriberCount, //multiple only works if a queue group specified
