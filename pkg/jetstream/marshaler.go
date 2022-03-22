@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/gob"
 	"encoding/json"
+	"fmt"
 
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/nats-io/nats.go"
@@ -12,7 +13,7 @@ import (
 
 type Marshaler interface {
 	// Marshal transforms a watermill message into binary format.
-	Marshal(topic string, msg *message.Message) ([]byte, error)
+	Marshal(topic string, msg *message.Message) (*nats.Msg, error)
 }
 
 type Unmarshaler interface {
@@ -25,11 +26,22 @@ type MarshalerUnmarshaler interface {
 	Unmarshaler
 }
 
+func defaultNatsMsg(topic string, uuid string, data []byte) *nats.Msg {
+	return &nats.Msg{
+		Subject: subject(topic, uuid),
+		Data:    data,
+	}
+}
+
+func subject(topic string, uuid string) string {
+	return fmt.Sprintf("%s.%s", topic, uuid)
+}
+
 // GobMarshaler is marshaller which is using Gob to marshal Watermill messages.
 type GobMarshaler struct{}
 
 // Marshal transforms a watermill message into gob format.
-func (GobMarshaler) Marshal(topic string, msg *message.Message) ([]byte, error) {
+func (GobMarshaler) Marshal(topic string, msg *message.Message) (*nats.Msg, error) {
 	buf := new(bytes.Buffer)
 
 	encoder := gob.NewEncoder(buf)
@@ -37,7 +49,7 @@ func (GobMarshaler) Marshal(topic string, msg *message.Message) ([]byte, error) 
 		return nil, errors.Wrap(err, "cannot encode message")
 	}
 
-	return buf.Bytes(), nil
+	return defaultNatsMsg(topic, msg.UUID, buf.Bytes()), nil
 }
 
 // Unmarshal extracts a watermill message from a nats message.
@@ -67,13 +79,13 @@ func (GobMarshaler) Unmarshal(natsMsg *nats.Msg) (*message.Message, error) {
 type JSONMarshaler struct{}
 
 // Marshal transforms a watermill message into JSON format.
-func (JSONMarshaler) Marshal(topic string, msg *message.Message) ([]byte, error) {
+func (JSONMarshaler) Marshal(topic string, msg *message.Message) (*nats.Msg, error) {
 	bytes, err := json.Marshal(msg)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot encode message")
 	}
 
-	return bytes, nil
+	return defaultNatsMsg(topic, msg.UUID, bytes), nil
 }
 
 // Unmarshal extracts a watermill message from a nats message.

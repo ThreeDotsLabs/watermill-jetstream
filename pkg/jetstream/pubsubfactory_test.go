@@ -34,9 +34,10 @@ func newPubSub(t *testing.T, clientID string, queueName string, exactlyOnce bool
 
 	var marshaler jetstream.MarshalerUnmarshaler
 
-	if strings.ToLower(format) == "json" {
+	switch strings.ToLower(format) {
+	case "json":
 		marshaler = &jetstream.JSONMarshaler{}
-	} else {
+	default:
 		marshaler = &jetstream.GobMarshaler{}
 	}
 

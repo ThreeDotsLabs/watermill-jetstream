@@ -1,8 +1,6 @@
 package jetstream
 
 import (
-	"fmt"
-
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/nats-io/nats.go"
@@ -153,7 +151,7 @@ func (p *Publisher) Publish(topic string, messages ...*message.Message) error {
 
 		p.logger.Trace("Publishing message", messageFields)
 
-		b, err := p.config.Marshaler.Marshal(topic, msg)
+		natsMsg, err := p.config.Marshaler.Marshal(topic, msg)
 		if err != nil {
 			return err
 		}
@@ -164,7 +162,7 @@ func (p *Publisher) Publish(topic string, messages ...*message.Message) error {
 			publishOpts = append(publishOpts, nats.MsgId(msg.UUID))
 		}
 
-		if _, err := p.js.Publish(fmt.Sprintf("%s.%s", topic, msg.UUID), b, publishOpts...); err != nil {
+		if _, err := p.js.PublishMsg(natsMsg, publishOpts...); err != nil {
 			return errors.Wrap(err, "sending message failed")
 		}
 	}

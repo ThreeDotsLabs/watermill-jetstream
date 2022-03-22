@@ -7,7 +7,6 @@ import (
 
 	"github.com/AlexCuse/watermill-jetstream/pkg/jetstream"
 	"github.com/ThreeDotsLabs/watermill/message"
-	"github.com/nats-io/nats.go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -21,7 +20,7 @@ func TestGobMarshaler(t *testing.T) {
 	b, err := marshaler.Marshal("topic", msg)
 	require.NoError(t, err)
 
-	unmarshaledMsg, err := marshaler.Unmarshal(&nats.Msg{Data: b})
+	unmarshaledMsg, err := marshaler.Unmarshal(b)
 	require.NoError(t, err)
 
 	assert.True(t, msg.Equals(unmarshaledMsg))
@@ -52,7 +51,7 @@ func TestGobMarshaler_multiple_messages_async(t *testing.T) {
 			b, err := marshaler.Marshal("topic", msg)
 			require.NoError(t, err)
 
-			unmarshaledMsg, err := marshaler.Unmarshal(&nats.Msg{Data: b})
+			unmarshaledMsg, err := marshaler.Unmarshal(b)
 
 			require.NoError(t, err)
 
@@ -72,7 +71,7 @@ func TestJSONMarshaler(t *testing.T) {
 	b, err := marshaler.Marshal("topic", msg)
 	require.NoError(t, err)
 
-	unmarshaledMsg, err := marshaler.Unmarshal(&nats.Msg{Data: b})
+	unmarshaledMsg, err := marshaler.Unmarshal(b)
 	require.NoError(t, err)
 
 	assert.True(t, msg.Equals(unmarshaledMsg))
@@ -103,7 +102,7 @@ func TestJSONMarshaler_multiple_messages_async(t *testing.T) {
 			b, err := marshaler.Marshal("topic", msg)
 			require.NoError(t, err)
 
-			unmarshaledMsg, err := marshaler.Unmarshal(&nats.Msg{Data: b})
+			unmarshaledMsg, err := marshaler.Unmarshal(b)
 
 			require.NoError(t, err)
 
