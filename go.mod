@@ -1,4 +1,4 @@
-module github.com/AlexCuse/watermill-jetstream
+module github.com/ThreeDotsLabs/watermill-jetstream
 
 go 1.17
 
@@ -6,6 +6,7 @@ replace github.com/ThreeDotsLabs/watermill => github.com/AlexCuse/watermill v1.2
 
 require (
 	github.com/ThreeDotsLabs/watermill v1.2.0-rc.9
+	github.com/google/uuid v1.3.0
 	github.com/nats-io/nats.go v1.13.1-0.20220202232944-a0a6a71ede98
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.7.0
@@ -13,7 +14,6 @@ require (
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/google/uuid v1.3.0 // indirect
 	github.com/hashicorp/errwrap v1.0.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/kr/pretty v0.1.0 // indirect
