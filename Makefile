@@ -22,6 +22,9 @@ test_reconnect:
 test_exactlyonce:
 	go test -tags=exactlyonce ./...
 
+bench:
+	go test -bench=. -count 5 -run=^# ./...
+
 fmt:
 	gofmt -l $$(find . -type f -name '*.go'| grep -v "/vendor/")
 	[ "`gofmt -l $$(find . -type f -name '*.go'| grep -v "/vendor/")`" = "" ]
