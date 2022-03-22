@@ -1,11 +1,10 @@
-package jetstream_test
+package jetstream
 
 import (
 	"fmt"
 	"sync"
 	"testing"
 
-	"github.com/AlexCuse/watermill-jetstream/pkg/jetstream"
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/google/uuid"
@@ -16,13 +15,13 @@ import (
 
 type marshalerCase struct {
 	name      string
-	marshaler jetstream.MarshalerUnmarshaler
+	marshaler MarshalerUnmarshaler
 }
 
 var marshalerCases = []marshalerCase{
-	{"gob", &jetstream.GobMarshaler{}},
-	{"json", &jetstream.JSONMarshaler{}},
-	{"nats", &jetstream.NATSMarshaler{}},
+	{"gob", &GobMarshaler{}},
+	{"json", &JSONMarshaler{}},
+	{"nats", &NATSMarshaler{}},
 }
 
 func TestMarshalers(t *testing.T) {
@@ -30,7 +29,7 @@ func TestMarshalers(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			msg := sampleMessage()
 
-			marshaler := jetstream.GobMarshaler{}
+			marshaler := GobMarshaler{}
 
 			b, err := marshaler.Marshal("topic", msg)
 			require.NoError(t, err)
@@ -114,11 +113,43 @@ func TestNatsMarshaler_Error_Multiple_Values_In_Single_Header(t *testing.T) {
 	b.Header.Add("foo", "bar")
 	b.Header.Add("foo", "baz")
 
-	marshaler := jetstream.NATSMarshaler{}
+	marshaler := NATSMarshaler{}
 
 	_, err := marshaler.Unmarshal(b)
 
 	require.Error(t, err)
+}
+
+func TestNatsMarshaler_Skips_Reserved_Headers(t *testing.T) {
+	natsMsg := nats.NewMsg("fizz")
+	natsMsg.Header.Add("foo", "bar")
+	assert.Equal(t, 1, len(natsMsg.Header))
+
+	unmarshaler := &NATSMarshaler{}
+
+	reserved := []string{
+		nats.MsgIdHdr,
+		nats.ExpectedLastMsgIdHdr,
+		nats.ExpectedLastSeqHdr,
+		nats.ExpectedLastSubjSeqHdr,
+		nats.ExpectedStreamHdr,
+		watermillUUIDHdr,
+	}
+
+	for _, v := range reserved {
+		t.Run(v, func(t *testing.T) {
+			assertReservedKey(t, natsMsg, v, unmarshaler)
+		})
+	}
+}
+
+func assertReservedKey(t *testing.T, natsMsg *nats.Msg, hdr string, unmarshaler *NATSMarshaler) {
+	natsMsg.Header.Add(hdr, uuid.NewString())
+	defer natsMsg.Header.Del(hdr)
+	assert.Equal(t, 2, len(natsMsg.Header))
+	msg, err := unmarshaler.Unmarshal(natsMsg)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(msg.Metadata))
 }
 
 func sampleMessage() *message.Message {

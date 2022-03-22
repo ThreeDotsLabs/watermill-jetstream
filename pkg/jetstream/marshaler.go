@@ -108,14 +108,14 @@ func (JSONMarshaler) Unmarshal(natsMsg *nats.Msg) (*message.Message, error) {
 // The watermill UUID is stored at _watermill_message_uuid
 type NATSMarshaler struct{}
 
-// can't use nats.MsgIdHeader because that opts into deduplication
-const watermillUUID = "_watermill_message_uuid"
+// reserved header for NATSMarshaler to send UUID
+const watermillUUIDHdr = "_watermill_message_uuid"
 
 // Marshal transforms a watermill message into JSON format.
 func (*NATSMarshaler) Marshal(topic string, msg *message.Message) (*nats.Msg, error) {
 	header := make(nats.Header)
 
-	header.Set(watermillUUID, msg.UUID)
+	header.Set(watermillUUIDHdr, msg.UUID)
 
 	for k, v := range msg.Metadata {
 		header.Set(k, v)
@@ -133,19 +133,21 @@ func (*NATSMarshaler) Unmarshal(natsMsg *nats.Msg) (*message.Message, error) {
 
 	hdr := natsMsg.Header
 
-	id := hdr.Get(watermillUUID)
+	id := hdr.Get(watermillUUIDHdr)
 
 	md := make(message.Metadata)
 
 	for k, v := range hdr {
-		if k == watermillUUID {
+		switch k {
+		case watermillUUIDHdr, nats.MsgIdHdr, nats.ExpectedLastMsgIdHdr, nats.ExpectedStreamHdr, nats.ExpectedLastSubjSeqHdr, nats.ExpectedLastSeqHdr:
 			continue
-		}
+		default:
 
-		if len(v) == 1 {
-			md.Set(k, v[0])
-		} else {
-			return nil, errors.Errorf("multiple values received in NATS header for %q: (%+v)", k, v)
+			if len(v) == 1 {
+				md.Set(k, v[0])
+			} else {
+				return nil, errors.Errorf("multiple values received in NATS header for %q: (%+v)", k, v)
+			}
 		}
 	}
 
