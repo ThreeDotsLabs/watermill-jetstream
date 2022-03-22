@@ -1,7 +1,6 @@
 package jetstream
 
 import (
-	"fmt"
 	"sync"
 	"testing"
 
@@ -83,7 +82,7 @@ func TestMarshalers_multiple_messages_async(t *testing.T) {
 
 func BenchmarkMarshalers(b *testing.B) {
 	for _, tc := range marshalerCases {
-		b.Run(fmt.Sprintf("%s benchmark", tc.name), func(b *testing.B) {
+		b.Run(tc.name, func(b *testing.B) {
 			msg := sampleMessage()
 
 			for i := 0; i < b.N; i++ {
