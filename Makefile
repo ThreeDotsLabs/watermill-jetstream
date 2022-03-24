@@ -22,8 +22,10 @@ test_reconnect:
 test_exactlyonce:
 	go test -tags=exactlyonce ./...
 
+BENCHCNT := 5
+
 bench:
-	go test -bench=. -count 5 -run=^# ./...
+	go test -bench=. -count $(BENCHCNT) -run=^# ./...
 
 fmt:
 	gofmt -l $$(find . -type f -name '*.go'| grep -v "/vendor/")
@@ -36,6 +38,9 @@ lint:
 	@if which golangci-lint >/dev/null ; then golangci-lint run --config .golangci.yml ; else echo "WARNING: go linter not installed. To install, run\n  curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b \$$(go env GOPATH)/bin v1.42.1"; fi
 
 check: fmt vet lint
+
+generate_proto:
+	cd pkg/jetstream/wmpb && protoc --go_out=. *.proto
 
 update_watermill:
 	go get -u github.com/ThreeDotsLabs/watermill
