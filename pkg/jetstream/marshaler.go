@@ -6,9 +6,11 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/ThreeDotsLabs/watermill-jetstream/pkg/jetstream/wmpb"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/nats-io/nats.go"
 	"github.com/pkg/errors"
+	"google.golang.org/protobuf/proto"
 )
 
 type Marshaler interface {
@@ -142,7 +144,6 @@ func (*NATSMarshaler) Unmarshal(natsMsg *nats.Msg) (*message.Message, error) {
 		case watermillUUIDHdr, nats.MsgIdHdr, nats.ExpectedLastMsgIdHdr, nats.ExpectedStreamHdr, nats.ExpectedLastSubjSeqHdr, nats.ExpectedLastSeqHdr:
 			continue
 		default:
-
 			if len(v) == 1 {
 				md.Set(k, v[0])
 			} else {
@@ -155,4 +156,40 @@ func (*NATSMarshaler) Unmarshal(natsMsg *nats.Msg) (*message.Message, error) {
 	msg.Metadata = md
 
 	return msg, nil
+}
+
+type ProtoMarshaler struct{}
+
+func (*ProtoMarshaler) Marshal(topic string, msg *message.Message) (*nats.Msg, error) {
+	pbMsg := &wmpb.Message{
+		Uuid:     msg.UUID,
+		Metadata: msg.Metadata,
+		Payload:  msg.Payload,
+	}
+
+	data, err := proto.Marshal(pbMsg)
+
+	if err != nil {
+		return nil, err
+	}
+
+	natsMsg := nats.NewMsg(subject(topic, msg.UUID))
+	natsMsg.Data = data
+
+	return natsMsg, nil
+}
+
+func (*ProtoMarshaler) Unmarshal(msg *nats.Msg) (*message.Message, error) {
+	pbMsg := &wmpb.Message{}
+
+	err := proto.Unmarshal(msg.Data, pbMsg)
+
+	if err != nil {
+		return nil, err
+	}
+
+	wmMsg := message.NewMessage(pbMsg.GetUuid(), pbMsg.GetPayload())
+	wmMsg.Metadata = pbMsg.GetMetadata()
+
+	return wmMsg, nil
 }
