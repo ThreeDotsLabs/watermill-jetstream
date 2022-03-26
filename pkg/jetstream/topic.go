@@ -59,3 +59,7 @@ func (b *topicInterpreter) ensureStream(topic string) error {
 
 	return err
 }
+
+func PublishSubject(topic string, uuid string) string {
+	return fmt.Sprintf("%s.%s", topic, uuid)
+}
