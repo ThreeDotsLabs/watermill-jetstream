@@ -8,6 +8,7 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill-jetstream/pkg/jetstream"
+	"github.com/ThreeDotsLabs/watermill-jetstream/pkg/jetstream/wmpb"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/ThreeDotsLabs/watermill/pubsub/tests"
 	"github.com/nats-io/nats.go"
@@ -38,7 +39,7 @@ func newPubSub(t *testing.T, clientID string, queueName string, exactlyOnce bool
 	case "nats":
 		marshaler = &jetstream.NATSMarshaler{}
 	case "proto":
-		marshaler = &jetstream.ProtoMarshaler{}
+		marshaler = &wmpb.NATSMarshaler{}
 	case "json":
 		marshaler = &jetstream.JSONMarshaler{}
 	default:

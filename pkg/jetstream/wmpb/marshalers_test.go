@@ -1,4 +1,4 @@
-package jetstream
+package wmpb_test
 
 import (
 	"crypto/rand"
@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"github.com/ThreeDotsLabs/watermill"
+	"github.com/ThreeDotsLabs/watermill-jetstream/pkg/jetstream"
+	"github.com/ThreeDotsLabs/watermill-jetstream/pkg/jetstream/wmpb"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
@@ -16,14 +18,14 @@ import (
 
 type marshalerCase struct {
 	name      string
-	marshaler MarshalerUnmarshaler
+	marshaler jetstream.MarshalerUnmarshaler
 }
 
 var marshalerCases = []marshalerCase{
-	{"gob", &GobMarshaler{}},
-	{"json", &JSONMarshaler{}},
-	{"proto", &ProtoMarshaler{}},
-	{"nats", &NATSMarshaler{}},
+	{"gob", &jetstream.GobMarshaler{}},
+	{"json", &jetstream.JSONMarshaler{}},
+	{"proto", &wmpb.NATSMarshaler{}},
+	{"nats", &jetstream.NATSMarshaler{}},
 }
 
 func TestMarshalers(t *testing.T) {
@@ -31,7 +33,7 @@ func TestMarshalers(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			msg := sampleMessage(100)
 
-			marshaler := GobMarshaler{}
+			marshaler := jetstream.GobMarshaler{}
 
 			b, err := marshaler.Marshal("topic", msg)
 			require.NoError(t, err)
@@ -117,7 +119,7 @@ func TestNatsMarshaler_Error_Multiple_Values_In_Single_Header(t *testing.T) {
 	b.Header.Add("foo", "bar")
 	b.Header.Add("foo", "baz")
 
-	marshaler := NATSMarshaler{}
+	marshaler := jetstream.NATSMarshaler{}
 
 	_, err := marshaler.Unmarshal(b)
 
@@ -129,7 +131,7 @@ func TestNatsMarshaler_Skips_Reserved_Headers(t *testing.T) {
 	natsMsg.Header.Add("foo", "bar")
 	assert.Equal(t, 1, len(natsMsg.Header))
 
-	unmarshaler := &NATSMarshaler{}
+	unmarshaler := &jetstream.NATSMarshaler{}
 
 	reserved := []string{
 		nats.MsgIdHdr,
@@ -137,7 +139,7 @@ func TestNatsMarshaler_Skips_Reserved_Headers(t *testing.T) {
 		nats.ExpectedLastSeqHdr,
 		nats.ExpectedLastSubjSeqHdr,
 		nats.ExpectedStreamHdr,
-		watermillUUIDHdr,
+		jetstream.WatermillUUIDHdr,
 	}
 
 	for _, v := range reserved {
@@ -147,7 +149,7 @@ func TestNatsMarshaler_Skips_Reserved_Headers(t *testing.T) {
 	}
 }
 
-func assertReservedKey(t *testing.T, natsMsg *nats.Msg, hdr string, unmarshaler *NATSMarshaler) {
+func assertReservedKey(t *testing.T, natsMsg *nats.Msg, hdr string, unmarshaler *jetstream.NATSMarshaler) {
 	natsMsg.Header.Add(hdr, uuid.NewString())
 	defer natsMsg.Header.Del(hdr)
 	assert.Equal(t, 2, len(natsMsg.Header))

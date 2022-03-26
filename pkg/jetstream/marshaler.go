@@ -4,25 +4,25 @@ import (
 	"bytes"
 	"encoding/gob"
 	"encoding/json"
-	"fmt"
 
-	"github.com/ThreeDotsLabs/watermill-jetstream/pkg/jetstream/wmpb"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/nats-io/nats.go"
 	"github.com/pkg/errors"
-	"google.golang.org/protobuf/proto"
 )
 
+// Marshaler provides transport encoding functions
 type Marshaler interface {
-	// Marshal transforms a watermill message into binary format.
+	// Marshal transforms a watermill message into NATS wire format.
 	Marshal(topic string, msg *message.Message) (*nats.Msg, error)
 }
 
+// Unmarshaler provides transport decoding function
 type Unmarshaler interface {
-	// Unmarshal extracts a watermill message from a nats message.
+	// Unmarshal produces a watermill message from NATS wire format.
 	Unmarshal(*nats.Msg) (*message.Message, error)
 }
 
+// MarshalerUnmarshaler provides both Marshaler and Unmarshaler implementations
 type MarshalerUnmarshaler interface {
 	Marshaler
 	Unmarshaler
@@ -30,14 +30,10 @@ type MarshalerUnmarshaler interface {
 
 func defaultNatsMsg(topic string, uuid string, data []byte, hdr nats.Header) *nats.Msg {
 	return &nats.Msg{
-		Subject: subject(topic, uuid),
+		Subject: PublishSubject(topic, uuid),
 		Data:    data,
 		Header:  hdr,
 	}
-}
-
-func subject(topic string, uuid string) string {
-	return fmt.Sprintf("%s.%s", topic, uuid)
 }
 
 // GobMarshaler is marshaller which is using Gob to marshal Watermill messages.
@@ -111,13 +107,13 @@ func (JSONMarshaler) Unmarshal(natsMsg *nats.Msg) (*message.Message, error) {
 type NATSMarshaler struct{}
 
 // reserved header for NATSMarshaler to send UUID
-const watermillUUIDHdr = "_watermill_message_uuid"
+const WatermillUUIDHdr = "_watermill_message_uuid"
 
 // Marshal transforms a watermill message into JSON format.
 func (*NATSMarshaler) Marshal(topic string, msg *message.Message) (*nats.Msg, error) {
 	header := make(nats.Header)
 
-	header.Set(watermillUUIDHdr, msg.UUID)
+	header.Set(WatermillUUIDHdr, msg.UUID)
 
 	for k, v := range msg.Metadata {
 		header.Set(k, v)
@@ -135,13 +131,13 @@ func (*NATSMarshaler) Unmarshal(natsMsg *nats.Msg) (*message.Message, error) {
 
 	hdr := natsMsg.Header
 
-	id := hdr.Get(watermillUUIDHdr)
+	id := hdr.Get(WatermillUUIDHdr)
 
 	md := make(message.Metadata)
 
 	for k, v := range hdr {
 		switch k {
-		case watermillUUIDHdr, nats.MsgIdHdr, nats.ExpectedLastMsgIdHdr, nats.ExpectedStreamHdr, nats.ExpectedLastSubjSeqHdr, nats.ExpectedLastSeqHdr:
+		case WatermillUUIDHdr, nats.MsgIdHdr, nats.ExpectedLastMsgIdHdr, nats.ExpectedStreamHdr, nats.ExpectedLastSubjSeqHdr, nats.ExpectedLastSeqHdr:
 			continue
 		default:
 			if len(v) == 1 {
@@ -156,40 +152,4 @@ func (*NATSMarshaler) Unmarshal(natsMsg *nats.Msg) (*message.Message, error) {
 	msg.Metadata = md
 
 	return msg, nil
-}
-
-type ProtoMarshaler struct{}
-
-func (*ProtoMarshaler) Marshal(topic string, msg *message.Message) (*nats.Msg, error) {
-	pbMsg := &wmpb.Message{
-		Uuid:     msg.UUID,
-		Metadata: msg.Metadata,
-		Payload:  msg.Payload,
-	}
-
-	data, err := proto.Marshal(pbMsg)
-
-	if err != nil {
-		return nil, err
-	}
-
-	natsMsg := nats.NewMsg(subject(topic, msg.UUID))
-	natsMsg.Data = data
-
-	return natsMsg, nil
-}
-
-func (*ProtoMarshaler) Unmarshal(msg *nats.Msg) (*message.Message, error) {
-	pbMsg := &wmpb.Message{}
-
-	err := proto.Unmarshal(msg.Data, pbMsg)
-
-	if err != nil {
-		return nil, err
-	}
-
-	wmMsg := message.NewMessage(pbMsg.GetUuid(), pbMsg.GetPayload())
-	wmMsg.Metadata = pbMsg.GetMetadata()
-
-	return wmMsg, nil
 }
