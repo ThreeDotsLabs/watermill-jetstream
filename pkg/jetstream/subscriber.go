@@ -330,17 +330,9 @@ func (s *Subscriber) subscribe(topic string, cb nats.MsgHandler) (*nats.Subscrip
 		opts = append(opts, nats.BindStream(""))
 	}
 
-	if s.config.QueueGroup != "" {
-		return s.js.QueueSubscribe(
-			primarySubject,
-			s.config.QueueGroup,
-			cb,
-			opts...,
-		)
-	}
-
-	return s.js.Subscribe(
+	return s.js.QueueSubscribe(
 		primarySubject,
+		s.config.QueueGroup,
 		cb,
 		opts...,
 	)
