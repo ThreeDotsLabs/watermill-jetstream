@@ -1,7 +1,6 @@
 package wmpb
 
 import (
-	"github.com/ThreeDotsLabs/watermill-jetstream/pkg/jetstream"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/nats-io/nats.go"
 	"google.golang.org/protobuf/proto"
@@ -22,7 +21,7 @@ func (*NATSMarshaler) Marshal(topic string, msg *message.Message) (*nats.Msg, er
 		return nil, err
 	}
 
-	natsMsg := nats.NewMsg(jetstream.PublishSubject(topic, msg.UUID))
+	natsMsg := nats.NewMsg(topic)
 	natsMsg.Data = data
 
 	return natsMsg, nil

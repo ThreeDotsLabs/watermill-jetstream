@@ -1,8 +1,6 @@
 package jetstream
 
 import (
-	"fmt"
-
 	"github.com/nats-io/nats.go"
 )
 
@@ -27,7 +25,7 @@ type topicInterpreter struct {
 
 func defaultSubjectCalculator(topic string) *Subjects {
 	return &Subjects{
-		Primary: fmt.Sprintf("%s.*", topic),
+		Primary: topic,
 	}
 }
 
@@ -58,8 +56,4 @@ func (b *topicInterpreter) ensureStream(topic string) error {
 	}
 
 	return err
-}
-
-func PublishSubject(topic string, uuid string) string {
-	return fmt.Sprintf("%s.%s", topic, uuid)
 }
