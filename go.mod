@@ -2,8 +2,6 @@ module github.com/ThreeDotsLabs/watermill-jetstream
 
 go 1.17
 
-replace github.com/ThreeDotsLabs/watermill => github.com/AlexCuse/watermill v1.2.0-rc.9.0.20220220204212-e3ba4405bc1e
-
 require (
 	github.com/ThreeDotsLabs/watermill v1.2.0-rc.10
 	github.com/google/uuid v1.3.0
