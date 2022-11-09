@@ -23,7 +23,7 @@ test_exactlyonce:
 	go test -tags=exactlyonce ./...
 
 wait:
-	go run github.com/ThreeDotsLabs/watermill/dev/wait-for@github-actions localhost:4222
+	go run github.com/ThreeDotsLabs/wait-for@latest localhost:4222
 
 build:
 	go build ./...
