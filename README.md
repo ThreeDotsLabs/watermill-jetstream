@@ -1,6 +1,8 @@
 # Watermill Jetstream Pub/Sub
 <img align="right" width="200" src="https://threedots.tech/watermill-io/watermill-logo.png">
 
+[![CI Status](https://github.com/ThreeDotsLabs/watermill-jetstream/actions/workflows/master.yml/badge.svg)](https://github.com/ThreeDotsLabs/watermill-jetstream/actions/workflows/master.yml)
+
 This is Pub/Sub for the [Watermill](https://watermill.io/) project targeting [NATS Jetstream](https://docs.nats.io/nats-concepts/jetstream).
 
 All Pub/Sub implementations can be found at [https://watermill.io/pubsubs/](https://watermill.io/pubsubs/).
