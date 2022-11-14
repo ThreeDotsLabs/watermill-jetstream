@@ -2,7 +2,7 @@ name: pr
 on:
   push:
     branches-ignore:
-      - master
+      - main
 jobs:
   ci:
     uses: ThreeDotsLabs/watermill/.github/workflows/tests.yml@master

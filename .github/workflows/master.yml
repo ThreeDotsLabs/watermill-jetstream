@@ -1,8 +1,8 @@
-name: pr
+name: master
 on:
   push:
     branches:
-      - master
+      - main
 jobs:
   ci:
     uses: ThreeDotsLabs/watermill/.github/workflows/tests.yml@master
