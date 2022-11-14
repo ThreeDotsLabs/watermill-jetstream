@@ -1,5 +1,5 @@
 up:
-	docker-compose up
+	docker-compose up -d
 
 test:
 	go test -parallel 20 ./...
@@ -21,6 +21,12 @@ test_reconnect:
 
 test_exactlyonce:
 	go test -tags=exactlyonce ./...
+
+wait:
+	go run github.com/ThreeDotsLabs/wait-for@latest localhost:4222
+
+build:
+	go build ./...
 
 BENCHCNT := 5
 
