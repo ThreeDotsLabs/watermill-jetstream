@@ -79,6 +79,10 @@ type SubscriberConfig struct {
 
 	// AckSync enables synchronous acknowledgement (needed for exactly once processing)
 	AckSync bool
+
+	// NakDelay sets duration after which the NACKed message will be resent.
+	// By default, it's NACKed without delay.
+	NakDelay Delay
 }
 
 // SubscriberSubscriptionConfig is the configurationz
@@ -139,6 +143,10 @@ type SubscriberSubscriptionConfig struct {
 
 	// AckSync enables synchronous acknowledgement (needed for exactly once processing)
 	AckSync bool
+
+	// NakDelay sets duration after which the NACKed message will be resent.
+	// By default, it's NACKed without delay.
+	NakDelay Delay
 }
 
 // GetSubscriberSubscriptionConfig gets the configuration subset needed for individual subscribe calls once a connection has been established
@@ -156,6 +164,7 @@ func (c *SubscriberConfig) GetSubscriberSubscriptionConfig() SubscriberSubscript
 		AutoProvision:     c.AutoProvision,
 		JetstreamOptions:  c.JetstreamOptions,
 		AckSync:           c.AckSync,
+		NakDelay:          c.NakDelay,
 	}
 }
 
@@ -391,10 +400,38 @@ func (s *Subscriber) processMessage(
 		}
 		s.logger.Trace("Message Acked", messageLogFields)
 	case <-msg.Nacked():
-		if err := m.Nak(); err != nil {
-			s.logger.Error("Cannot send nak", err, messageLogFields)
-			return
+		var nakDelay time.Duration
+
+		if s.config.NakDelay != nil {
+			metadata, err := m.Metadata()
+			if err != nil {
+				s.logger.Error("Cannot parse nats message metadata, use nak without delay", err, messageLogFields)
+			} else {
+				nakDelay = s.config.NakDelay.WaitTime(metadata.NumDelivered)
+				messageLogFields = messageLogFields.Add(watermill.LogFields{
+					"delay":    nakDelay.String(),
+					"retryNum": metadata.NumDelivered,
+				})
+			}
 		}
+
+		if nakDelay == StopTime {
+			if err := m.Term(); err != nil {
+				s.logger.Error("Cannot send term", err, messageLogFields)
+				return
+			}
+		} else if nakDelay > 0 {
+			if err := m.NakWithDelay(nakDelay); err != nil {
+				s.logger.Error("Cannot send nak", err, messageLogFields)
+				return
+			}
+		} else {
+			if err := m.Nak(); err != nil {
+				s.logger.Error("Cannot send nak", err, messageLogFields)
+				return
+			}
+		}
+
 		s.logger.Trace("Message Nacked", messageLogFields)
 		return
 	case <-time.After(s.config.AckWaitTimeout):
