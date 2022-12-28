@@ -74,6 +74,12 @@ type SubscriberConfig struct {
 	// SubjectCalculator is a function used to transform a topic to an array of subjects on creation (defaults to "{topic}.*")
 	SubjectCalculator SubjectCalculator
 
+	// DurableNameCalculator is a function used to calculate nats durable names for the given topic (defaults to DurableName)
+	DurableNameCalculator DurableNameCalculator
+
+	// QueueGroupCalculator is a function used to calculate nats queue group for the given topic (defaults to QueueGroup)
+	QueueGroupCalculator QueueGroupCalculator
+
 	// AutoProvision bypasses client validation and provisioning of streams
 	AutoProvision bool
 
@@ -134,6 +140,12 @@ type SubscriberSubscriptionConfig struct {
 	// SubjectCalculator is a function used to transform a topic to an array of subjects on creation (defaults to "{topic}.*")
 	SubjectCalculator SubjectCalculator
 
+	// DurableNameCalculator is a function used to calculate nats durable names for the given topic (defaults to DurableName)
+	DurableNameCalculator DurableNameCalculator
+
+	// QueueGroupCalculator is a function used to calculate nats queue group for the given topic (defaults to QueueGroup)
+	QueueGroupCalculator QueueGroupCalculator
+
 	// AutoProvision bypasses client validation and provisioning of streams
 	AutoProvision bool
 
@@ -144,18 +156,20 @@ type SubscriberSubscriptionConfig struct {
 // GetSubscriberSubscriptionConfig gets the configuration subset needed for individual subscribe calls once a connection has been established
 func (c *SubscriberConfig) GetSubscriberSubscriptionConfig() SubscriberSubscriptionConfig {
 	return SubscriberSubscriptionConfig{
-		Unmarshaler:       c.Unmarshaler,
-		QueueGroup:        c.QueueGroup,
-		DurableName:       c.DurableName,
-		SubscribersCount:  c.SubscribersCount,
-		AckWaitTimeout:    c.AckWaitTimeout,
-		CloseTimeout:      c.CloseTimeout,
-		SubscribeTimeout:  c.SubscribeTimeout,
-		SubscribeOptions:  c.SubscribeOptions,
-		SubjectCalculator: c.SubjectCalculator,
-		AutoProvision:     c.AutoProvision,
-		JetstreamOptions:  c.JetstreamOptions,
-		AckSync:           c.AckSync,
+		Unmarshaler:           c.Unmarshaler,
+		QueueGroup:            c.QueueGroup,
+		DurableName:           c.DurableName,
+		SubscribersCount:      c.SubscribersCount,
+		AckWaitTimeout:        c.AckWaitTimeout,
+		CloseTimeout:          c.CloseTimeout,
+		SubscribeTimeout:      c.SubscribeTimeout,
+		SubscribeOptions:      c.SubscribeOptions,
+		SubjectCalculator:     c.SubjectCalculator,
+		DurableNameCalculator: c.DurableNameCalculator,
+		QueueGroupCalculator:  c.QueueGroupCalculator,
+		AutoProvision:         c.AutoProvision,
+		JetstreamOptions:      c.JetstreamOptions,
+		AckSync:               c.AckSync,
 	}
 }
 
@@ -244,12 +258,17 @@ func NewSubscriberWithNatsConn(conn *nats.Conn, config SubscriberSubscriptionCon
 	}
 
 	return &Subscriber{
-		conn:             conn,
-		logger:           logger,
-		config:           config,
-		closing:          make(chan struct{}),
-		js:               js,
-		topicInterpreter: newTopicInterpreter(js, config.SubjectCalculator),
+		conn:    conn,
+		logger:  logger,
+		config:  config,
+		closing: make(chan struct{}),
+		js:      js,
+		topicInterpreter: newTopicInterpreter(
+			js,
+			config.SubjectCalculator,
+			config.DurableNameCalculator,
+			config.QueueGroupCalculator,
+		),
 	}, nil
 }
 
@@ -286,8 +305,13 @@ func (s *Subscriber) Subscribe(ctx context.Context, topic string) (<-chan *messa
 				// unblock
 			}
 
-			if err := sub.Unsubscribe(); err != nil {
-				s.logger.Error("Cannot unsubscribe", err, subscriberLogFields)
+			// When the application wants to stop receiving messages on a durable subscription,
+			// it should close - but not unsubscribe - this subscription.
+			// See: https://docs.nats.io/legacy/stan/intro/channels/subscriptions/durable
+			if s.config.DurableName == "" {
+				if err := sub.Unsubscribe(); err != nil {
+					s.logger.Error("Cannot unsubscribe", err, subscriberLogFields)
+				}
 			}
 		}(sub, subscriberLogFields)
 	}
@@ -325,15 +349,15 @@ func (s *Subscriber) subscribe(topic string, cb nats.MsgHandler) (*nats.Subscrip
 	opts := s.config.SubscribeOptions
 
 	if s.config.DurableName != "" {
-		opts = append(opts, nats.Durable(s.config.DurableName))
+		durableName := s.topicInterpreter.durableNameCalculator(s.config.DurableName, topic)
+		opts = append(opts, nats.Durable(durableName))
 	} else {
 		opts = append(opts, nats.BindStream(""))
 	}
 
 	return s.js.QueueSubscribe(
 		primarySubject,
-		s.config.QueueGroup,
-		cb,
+		s.topicInterpreter.queueGroupCalculator(s.config.QueueGroup, topic), cb,
 		opts...,
 	)
 }

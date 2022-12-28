@@ -123,11 +123,15 @@ func NewPublisherWithNatsConn(conn *nats.Conn, config PublisherPublishConfig, lo
 	}
 
 	return &Publisher{
-		conn:             conn,
-		config:           config,
-		logger:           logger,
-		js:               js,
-		topicInterpreter: newTopicInterpreter(js, config.SubjectCalculator),
+		conn:   conn,
+		config: config,
+		logger: logger,
+		js:     js,
+		topicInterpreter: newTopicInterpreter(
+			js,
+			config.SubjectCalculator,
+			nil, nil,
+		),
 	}, nil
 }
 
