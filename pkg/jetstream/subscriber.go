@@ -134,10 +134,10 @@ type SubscriberSubscriptionConfig struct {
 	// SubjectCalculator is a function used to transform a topic to an array of subjects on creation (defaults to "{topic}.*")
 	SubjectCalculator SubjectCalculator
 
-	// DurableNameCalculator is a function used to calculate nats durable names for the given topic.
+	// DurableNameCalculator is a function used to calculate nats durable names for the given topic (defaults to DurableName)
 	DurableNameCalculator DurableNameCalculator
 
-	// QueueGroupCalculator is a function used to calculate nats queue group for the given topic.
+	// QueueGroupCalculator is a function used to calculate nats queue group for the given topic (defaults to QueueGroup)
 	QueueGroupCalculator QueueGroupCalculator
 
 	// AutoProvision bypasses client validation and provisioning of streams
