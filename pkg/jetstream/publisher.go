@@ -24,12 +24,6 @@ type PublisherConfig struct {
 	// SubjectCalculator is a function used to transform a topic to an array of subjects on creation (defaults to "{topic}.*")
 	SubjectCalculator SubjectCalculator
 
-	// DurableNameCalculator is a function used to calculate nats durable names for the given topic (defaults to DurableName)
-	DurableNameCalculator DurableNameCalculator
-
-	// QueueGroupCalculator is a function used to calculate nats queue group for the given topic (defaults to QueueGroup)
-	QueueGroupCalculator QueueGroupCalculator
-
 	// AutoProvision bypasses client validation and provisioning of streams
 	AutoProvision bool
 
@@ -47,12 +41,6 @@ type PublisherPublishConfig struct {
 
 	// SubjectCalculator is a function used to transform a topic to an array of subjects on creation (defaults to "{topic}.*")
 	SubjectCalculator SubjectCalculator
-
-	// DurableNameCalculator is a function used to calculate nats durable names for the given topic (defaults to DurableName)
-	DurableNameCalculator DurableNameCalculator
-
-	// QueueGroupCalculator is a function used to calculate nats queue group for the given topic (defaults to QueueGroup)
-	QueueGroupCalculator QueueGroupCalculator
 
 	// AutoProvision bypasses client validation and provisioning of streams
 	AutoProvision bool
@@ -88,14 +76,12 @@ func (c PublisherConfig) Validate() error {
 // GetPublisherPublishConfig gets the configuration subset needed for individual publish calls once a connection has been established
 func (c PublisherConfig) GetPublisherPublishConfig() PublisherPublishConfig {
 	return PublisherPublishConfig{
-		Marshaler:             c.Marshaler,
-		SubjectCalculator:     c.SubjectCalculator,
-		AutoProvision:         c.AutoProvision,
-		JetstreamOptions:      c.JetstreamOptions,
-		PublishOptions:        c.PublishOptions,
-		DurableNameCalculator: c.DurableNameCalculator,
-		QueueGroupCalculator:  c.QueueGroupCalculator,
-		TrackMsgId:            c.TrackMsgId,
+		Marshaler:         c.Marshaler,
+		SubjectCalculator: c.SubjectCalculator,
+		AutoProvision:     c.AutoProvision,
+		JetstreamOptions:  c.JetstreamOptions,
+		PublishOptions:    c.PublishOptions,
+		TrackMsgId:        c.TrackMsgId,
 	}
 }
 
@@ -144,8 +130,7 @@ func NewPublisherWithNatsConn(conn *nats.Conn, config PublisherPublishConfig, lo
 		topicInterpreter: newTopicInterpreter(
 			js,
 			config.SubjectCalculator,
-			config.DurableNameCalculator,
-			config.QueueGroupCalculator,
+			nil, nil,
 		),
 	}, nil
 }
