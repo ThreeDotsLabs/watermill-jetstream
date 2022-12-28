@@ -7,6 +7,12 @@ import (
 // SubjectCalculator is a function used to calculate nats subject(s) for the given topic.
 type SubjectCalculator func(topic string) *Subjects
 
+// DurableNameCalculator is a function used to calculate nats durable names for the given topic.
+type DurableNameCalculator func(durableName, topic string) string
+
+// QueueGroupCalculator is a function used to calculate nats queue group for the given topic.
+type QueueGroupCalculator func(queueGroup, topic string) string
+
 // Subjects contains nats subject detail (primary + all additional) for a given watermill topic.
 type Subjects struct {
 	Primary    string
@@ -19,8 +25,10 @@ func (s *Subjects) All() []string {
 }
 
 type topicInterpreter struct {
-	js                nats.JetStreamManager
-	subjectCalculator SubjectCalculator
+	js                    nats.JetStreamManager
+	subjectCalculator     SubjectCalculator
+	durableNameCalculator DurableNameCalculator
+	queueGroupCalculator  QueueGroupCalculator
 }
 
 func defaultSubjectCalculator(topic string) *Subjects {
@@ -29,14 +37,35 @@ func defaultSubjectCalculator(topic string) *Subjects {
 	}
 }
 
-func newTopicInterpreter(js nats.JetStreamManager, formatter SubjectCalculator) *topicInterpreter {
-	if formatter == nil {
-		formatter = defaultSubjectCalculator
+func defaultDurableNameCalculator(durableName, _ string) string {
+	return durableName
+}
+
+func defaultQueueGroupCalculator(queueGroup, _ string) string {
+	return queueGroup
+}
+
+func newTopicInterpreter(
+	js nats.JetStreamManager,
+	subjectCalculator SubjectCalculator,
+	durableNameCalculator DurableNameCalculator,
+	queueGroupCalculator QueueGroupCalculator,
+) *topicInterpreter {
+	if subjectCalculator == nil {
+		subjectCalculator = defaultSubjectCalculator
+	}
+	if durableNameCalculator == nil {
+		durableNameCalculator = defaultDurableNameCalculator
+	}
+	if queueGroupCalculator == nil {
+		queueGroupCalculator = defaultQueueGroupCalculator
 	}
 
 	return &topicInterpreter{
-		js:                js,
-		subjectCalculator: formatter,
+		js:                    js,
+		subjectCalculator:     subjectCalculator,
+		durableNameCalculator: defaultDurableNameCalculator,
+		queueGroupCalculator:  defaultQueueGroupCalculator,
 	}
 }
 

@@ -42,6 +42,12 @@ type PublisherPublishConfig struct {
 	// SubjectCalculator is a function used to transform a topic to an array of subjects on creation (defaults to "{topic}.*")
 	SubjectCalculator SubjectCalculator
 
+	// DurableNameCalculator is a function used to calculate nats durable names for the given topic.
+	DurableNameCalculator DurableNameCalculator
+
+	// QueueGroupCalculator is a function used to calculate nats queue group for the given topic.
+	QueueGroupCalculator QueueGroupCalculator
+
 	// AutoProvision bypasses client validation and provisioning of streams
 	AutoProvision bool
 
@@ -123,11 +129,16 @@ func NewPublisherWithNatsConn(conn *nats.Conn, config PublisherPublishConfig, lo
 	}
 
 	return &Publisher{
-		conn:             conn,
-		config:           config,
-		logger:           logger,
-		js:               js,
-		topicInterpreter: newTopicInterpreter(js, config.SubjectCalculator),
+		conn:   conn,
+		config: config,
+		logger: logger,
+		js:     js,
+		topicInterpreter: newTopicInterpreter(
+			js,
+			config.SubjectCalculator,
+			config.DurableNameCalculator,
+			config.QueueGroupCalculator,
+		),
 	}, nil
 }
 
